@@ -1,0 +1,163 @@
+<!--
+  - SPDX-FileCopyrightText: 2026 Nextcloud GmbH and Nextcloud contributors
+  - SPDX-License-Identifier: AGPL-3.0-or-later
+-->
+
+<template>
+	<div class="account-label-settings">
+		<p class="account-label-settings__hint">
+			{{ t('mail', 'Shown next to the sender in mailboxes that combine several accounts, such as All inboxes. Leave both empty to show nothing.') }}
+		</p>
+		<div class="account-label-settings__row">
+			<NcTextField
+				v-model="label"
+				class="account-label-settings__label"
+				:label="t('mail', 'Label')"
+				:maxlength="maxLength"
+				:disabled="saving"
+				@keyup.enter="save"
+				@blur="save" />
+			<div class="account-label-settings__color">
+				<span class="account-label-settings__color-label">{{ t('mail', 'Color') }}</span>
+				<NcColorPicker
+					v-model="color"
+					@submit="onColorSubmit">
+					<NcButton
+						variant="tertiary"
+						:aria-label="t('mail', 'Choose a color for the label')"
+						:disabled="saving">
+						<template #icon>
+							<span
+								class="account-label-settings__swatch"
+								:class="{ 'account-label-settings__swatch--empty': !color }"
+								:style="{ backgroundColor: color || undefined }" />
+						</template>
+					</NcButton>
+				</NcColorPicker>
+			</div>
+			<NcButton
+				v-if="account.unifiedLabel || account.unifiedLabelColor"
+				variant="tertiary"
+				:disabled="saving"
+				@click="clear">
+				{{ t('mail', 'Remove label') }}
+			</NcButton>
+		</div>
+	</div>
+</template>
+
+<script>
+import { showError } from '@nextcloud/dialogs'
+import { NcButton, NcColorPicker, NcTextField } from '@nextcloud/vue'
+import { mapStores } from 'pinia'
+import logger from '../logger.js'
+import { UNIFIED_LABEL_MAX_LENGTH } from '../store/constants.js'
+import useMainStore from '../store/mainStore.js'
+
+export default {
+	name: 'AccountLabelSettings',
+	components: {
+		NcButton,
+		NcColorPicker,
+		NcTextField,
+	},
+
+	props: {
+		account: {
+			type: Object,
+			required: true,
+		},
+	},
+
+	data() {
+		return {
+			label: this.account.unifiedLabel,
+			color: this.account.unifiedLabelColor,
+			maxLength: UNIFIED_LABEL_MAX_LENGTH,
+			saving: false,
+		}
+	},
+
+	computed: {
+		...mapStores(useMainStore),
+	},
+
+	methods: {
+		async onColorSubmit(color) {
+			this.color = color
+			await this.save()
+		},
+
+		async clear() {
+			this.label = ''
+			this.color = ''
+			await this.save()
+		},
+
+		async save() {
+			const label = this.label.trim()
+			if (label === this.account.unifiedLabel && this.color === this.account.unifiedLabelColor) {
+				return
+			}
+
+			this.saving = true
+			try {
+				await this.mainStore.setAccountUnifiedLabel({
+					accountId: this.account.id,
+					label,
+					color: this.color,
+				})
+				this.label = label
+			} catch (error) {
+				logger.error('could not save the account label', { error })
+				showError(t('mail', 'Could not save the label'))
+				this.label = this.account.unifiedLabel
+				this.color = this.account.unifiedLabelColor
+			} finally {
+				this.saving = false
+			}
+		},
+	},
+}
+</script>
+
+<style lang="scss" scoped>
+.account-label-settings {
+	&__hint {
+		color: var(--color-text-maxcontrast);
+		margin-bottom: calc(var(--default-grid-baseline) * 2);
+	}
+
+	&__row {
+		display: flex;
+		align-items: flex-end;
+		gap: calc(var(--default-grid-baseline) * 2);
+	}
+
+	&__label {
+		max-width: calc(var(--default-clickable-area) * 6);
+	}
+
+	&__color {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+	}
+
+	&__color-label {
+		color: var(--color-text-maxcontrast);
+		font-size: var(--font-size-small);
+	}
+
+	&__swatch {
+		display: block;
+		width: calc(var(--default-grid-baseline) * 5);
+		height: calc(var(--default-grid-baseline) * 5);
+		border-radius: 50%;
+
+		&--empty {
+			border: 2px dashed var(--color-border-dark);
+		}
+	}
+}
+</style>
