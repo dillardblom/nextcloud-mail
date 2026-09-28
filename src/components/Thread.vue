@@ -32,6 +32,7 @@
 				@delete="$emit('delete', env.databaseId)"
 				@move="onMove(env.databaseId)"
 				@print-shortcut="printThread"
+				@reply-shortcut="replyTo(env)"
 				@toggle-expand="toggleExpand(env.databaseId)"
 				@print="print" />
 		</template>
@@ -64,6 +65,7 @@ import {
 	renderPlainTextMessage,
 	waitForImages,
 } from '../util/printMessage.ts'
+import { isDialogOpen, isEditableTarget, isReplyShortcut } from '../util/replyShortcut.js'
 import { wait } from '../util/wait.js'
 
 /**
@@ -91,6 +93,7 @@ export default {
 
 	data() {
 		return {
+			replyPending: false,
 			summaryLoading: false,
 			loading: true,
 			message: undefined,
@@ -323,12 +326,58 @@ export default {
 		 * @param {KeyboardEvent} event the app window's keydown event
 		 */
 		async handleKeyDown(event) {
+			if (isReplyShortcut(event)) {
+				this.replyViaShortcut(event)
+				return
+			}
 			if (!isPrintShortcut(event)) {
 				return
 			}
 			event.preventDefault()
 
 			await this.printThread()
+		},
+
+		replyViaShortcut(event) {
+			// Reloading would throw away the message being written
+			if (this.isComposing()) {
+				event.preventDefault()
+				return
+			}
+			if (isEditableTarget(event.target) || isDialogOpen()) {
+				return
+			}
+			const envelope = this.thread.find((envelope) => envelope.databaseId === this.threadId)
+				?? this.thread[this.thread.length - 1]
+			if (!envelope) {
+				return
+			}
+
+			event.preventDefault()
+			if (!event.repeat) {
+				this.replyTo(envelope)
+			}
+		},
+
+		isComposing() {
+			return this.replyPending || this.mainStore.showMessageComposer
+		},
+
+		async replyTo(envelope) {
+			if (this.isComposing() || isDialogOpen()) {
+				return
+			}
+			this.replyPending = true
+			try {
+				await this.mainStore.startComposerSession({
+					reply: {
+						mode: 'reply',
+						data: envelope,
+					},
+				})
+			} finally {
+				this.replyPending = false
+			}
 		},
 
 		/**
