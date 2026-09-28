@@ -52,6 +52,7 @@ use OCP\AppFramework\Http\ZipResponse;
 use OCP\Files\Folder;
 use OCP\Files\IFilenameValidator;
 use OCP\Files\IMimeTypeDetector;
+use OCP\ICache;
 use OCP\ICacheFactory;
 use OCP\IL10N;
 use OCP\IRequest;
@@ -294,6 +295,87 @@ class MessagesControllerTest extends TestCase {
 		$this->assertSame($expectedRichResponse->render(), $actualRichResponse->render());
 		$this->assertEquals($policy, $actualRichResponse->getContentSecurityPolicy());
 		$this->assertCachedFor($actualRichResponse, 60 * 60);
+	}
+
+	public function testGetHtmlBodyCachesFetchedHtml(): void {
+		$accountId = 17;
+		$messageId = 4321;
+		$this->account
+			->method('getId')
+			->willReturn($accountId);
+		$mailbox = new \OCA\Mail\Db\Mailbox();
+		$mailbox->setAccountId($accountId);
+		$message = new \OCA\Mail\Db\Message();
+		$message->setMailboxId(13);
+		$message->setUid(123);
+		$this->mailManager->method('getMessage')
+			->willReturn($message);
+		$this->mailManager->method('getMailbox')
+			->willReturn($mailbox);
+		$this->accountService->method('find')
+			->willReturn($this->account);
+		$client = $this->createStub(Horde_Imap_Client_Socket::class);
+		$imapMessage = $this->createStub(IMAPMessage::class);
+		$imapMessage->method('getHtmlBody')
+			->willReturn('<p>Hello</p>');
+		$this->clientFactory->expects($this->once())
+			->method('getClient')
+			->with($this->account)
+			->willReturn($client);
+		$this->mailManager->expects($this->once())
+			->method('getImapMessage')
+			->with($client, $this->account, $mailbox, 123, true)
+			->willReturn($imapMessage);
+		$cached = null;
+		$cache = $this->createMock(ICache::class);
+		$cache->method('get')
+			->with("message_$messageId")
+			->willReturnCallback(static function () use (&$cached) {
+				return $cached;
+			});
+		$cache->expects($this->once())
+			->method('set')
+			->with("message_$messageId", '<p>Hello</p>', 600)
+			->willReturnCallback(static function (string $key, string $value) use (&$cached) {
+				$cached = $value;
+				return true;
+			});
+		$cacheFactory = $this->createMock(ICacheFactory::class);
+		$cacheFactory->method('createDistributed')
+			->with("mail_account_$accountId")
+			->willReturn($cache);
+		$controller = new MessagesController(
+			$this->appName,
+			$this->request,
+			$this->accountService,
+			$this->mailManager,
+			$this->mailSearch,
+			$this->itineraryService,
+			$this->userId,
+			$this->userFolder,
+			$this->filenameValidator,
+			$this->logger,
+			$this->l10n,
+			$this->mimeTypeDetector,
+			$this->urlGenerator,
+			$this->nonceManager,
+			$this->trustedSenderService,
+			$this->mailTransmission,
+			$this->smimeService,
+			$this->clientFactory,
+			$this->dkimService,
+			$this->userPreferences,
+			$this->snoozeService,
+			$this->aiIntegrationsService,
+			$cacheFactory,
+			$this->delegationService,
+		);
+
+		$first = $controller->getHtmlBody($messageId, true);
+		$second = $controller->getHtmlBody($messageId, true);
+
+		$this->assertSame(HtmlResponse::plain('<p>Hello</p>')->render(), $first->render());
+		$this->assertSame($first->render(), $second->render());
 	}
 
 	public function testDownloadAttachment() {
