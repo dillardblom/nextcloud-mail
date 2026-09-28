@@ -17,6 +17,7 @@ use OCA\Mail\Db\Message;
 use OCA\Mail\Db\MessageMapper as DbMapper;
 use OCA\Mail\IMAP\IMAPClientFactory;
 use OCA\Mail\IMAP\MessageMapper as ImapMapper;
+use OCA\Mail\IMAP\MessageStructureData;
 use OCA\Mail\IMAP\PreviewEnhancer;
 use OCA\Mail\Service\Attachment\AttachmentService;
 use OCA\Mail\Service\Avatar\Avatar;
@@ -109,6 +110,41 @@ class PreviewEnhancerTest extends TestCase {
 		$this->assertFalse($message2->jsonSerialize()['fetchAvatarFromClient']);
 		$this->assertNull($message1->getAvatar());
 		$this->assertSame($message2Avatar, $message2->getAvatar());
+	}
+
+	public function testAnalyzesStructureBeforeLookingUpAttachmentNames(): void {
+		$account = $this->createStub(\OCA\Mail\Account::class);
+		$account->method('getEMailAddress')->willReturn('jane@example.com');
+		$mailbox = new \OCA\Mail\Db\Mailbox();
+		$mailbox->setName('INBOX');
+		$message = new Message();
+		$message->setId(1);
+		$message->setUid(100);
+		$message->setStructureAnalyzed(false);
+		$client = $this->createMock(Horde_Imap_Client_Socket::class);
+		$this->imapClientFactory->method('getClient')->willReturn($client);
+		$calls = [];
+		$this->imapMapper->expects($this->once())
+			->method('getBodyStructureData')
+			->willReturnCallback(function () use (&$calls) {
+				$calls[] = 'structure';
+				return [100 => new MessageStructureData(false, 'preview', false, false, false)];
+			});
+		$this->dbMapper->expects($this->once())
+			->method('updatePreviewDataBulk')
+			->willReturnCallback(static fn (Message ...$messages) => $messages);
+		$this->attachmentService->expects($this->once())
+			->method('getAttachmentNames')
+			->willReturnCallback(function ($account, $mailbox, Message $message) use (&$calls) {
+				$calls[] = 'attachments:' . ($message->getStructureAnalyzed() ? 'analyzed' : 'unanalyzed');
+				return [];
+			});
+		$client->expects($this->once())->method('logout');
+
+		$this->previewEnhancer->process($account, $mailbox, [$message]);
+
+		$this->assertSame(['structure', 'attachments:analyzed'], $calls);
+		$this->assertFalse($message->getFlagAttachments());
 	}
 
 }

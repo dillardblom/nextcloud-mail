@@ -10,6 +10,7 @@ declare(strict_types=1);
 namespace OCA\Mail\IMAP;
 
 use Horde_Imap_Client_Exception;
+use Horde_Imap_Client_Socket;
 use OCA\Mail\Account;
 use OCA\Mail\Db\Mailbox;
 use OCA\Mail\Db\Message;
@@ -51,9 +52,19 @@ class PreviewEnhancer {
 		}, []);
 		$client = $this->clientFactory->getClient($account);
 
-		foreach ($messages as $message) {
-			$attachments = $this->attachmentService->getAttachmentNames($account, $mailbox, $message, $client);
-			$message->setAttachments($attachments);
+		try {
+			// Analyze first: afterwards only messages that really have attachments need their
+			// attachment names, which otherwise costs a full IMAP fetch per message
+			if ($needAnalyze !== []) {
+				$messages = $this->analyzeStructure($client, $account, $mailbox, $messages, $needAnalyze);
+			}
+
+			foreach ($messages as $message) {
+				$attachments = $this->attachmentService->getAttachmentNames($account, $mailbox, $message, $client);
+				$message->setAttachments($attachments);
+			}
+		} finally {
+			$client->logout();
 		}
 
 		if ($preLoadAvatars) {
@@ -72,16 +83,20 @@ class PreviewEnhancer {
 			}
 		}
 
-		if ($needAnalyze === []) {
-			// Nothing to enhance
-			return $messages;
-		}
+		return $messages;
+	}
 
+	/**
+	 * @param Message[] $messages
+	 * @param int[] $uids
+	 * @return Message[]
+	 */
+	private function analyzeStructure(Horde_Imap_Client_Socket $client, Account $account, Mailbox $mailbox, array $messages, array $uids): array {
 		try {
 			$data = $this->imapMapper->getBodyStructureData(
 				$client,
 				$mailbox->getName(),
-				$needAnalyze,
+				$uids,
 				$account->getEMailAddress()
 			);
 		} catch (Horde_Imap_Client_Exception $e) {
@@ -91,8 +106,6 @@ class PreviewEnhancer {
 			]);
 
 			return $messages;
-		} finally {
-			$client->logout();
 		}
 
 		return $this->mapper->updatePreviewDataBulk(...array_map(static function (Message $message) use ($data) {
