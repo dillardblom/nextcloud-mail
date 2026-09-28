@@ -206,6 +206,7 @@ class PageControllerTest extends TestCase {
 				[$this->userId, 'sort-favorites', 'false', 'false'],
 				[$this->userId, 'compact-mode', 'false', 'false'],
 				[$this->userId, 'auto-mark-as-read', '3000', '3000'],
+				[$this->userId, 'modalSize', 'normal', 'normal'],
 			]);
 		$this->accountService->expects($this->once())
 			->method('findByUserId')
@@ -376,6 +377,7 @@ class PageControllerTest extends TestCase {
 					'index-context-chat' => 'true',
 					'compact-mode' => 'false',
 					'auto-mark-as-read' => '3000',
+					'modalSize' => 'normal',
 				]],
 				['prefill_displayName', 'Jane Doe'],
 				['importance_classification_default', true],

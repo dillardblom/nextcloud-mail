@@ -105,6 +105,10 @@ export default function initAfterAppCreation() {
 		key: 'auto-mark-as-read',
 		value: preferences['auto-mark-as-read'],
 	})
+	mainStore.savePreferenceMutation({
+		key: 'modalSize',
+		value: preferences.modalSize,
+	})
 
 	mainStore.setQuickActions(loadState('mail', 'quick-actions', []))
 
