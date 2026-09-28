@@ -208,6 +208,54 @@ class MessageMapperTest extends TestCase {
 		self::assertEquals([3,2,1], $result);
 	}
 
+	/**
+	 * Insert messages with id = uid and a sent date that increases with the uid
+	 *
+	 * @param int[] $uids
+	 */
+	private function insertMessagesSentInUidOrder(array $uids, int $mailboxId, array $subjects = []): void {
+		foreach ($uids as $uid) {
+			$qb = $this->db->getQueryBuilder();
+			$qb->insert($this->mapper->getTableName())
+				->values([
+					'id' => $qb->createNamedParameter($uid, IQueryBuilder::PARAM_INT),
+					'uid' => $qb->createNamedParameter($uid, IQueryBuilder::PARAM_INT),
+					'message_id' => $qb->createNamedParameter("<msg$uid@example.com>"),
+					'mailbox_id' => $qb->createNamedParameter($mailboxId, IQueryBuilder::PARAM_INT),
+					'subject' => $qb->createNamedParameter($subjects[$uid] ?? 'TEST'),
+					'sent_at' => $qb->createNamedParameter(1641216000 + $uid, IQueryBuilder::PARAM_INT),
+				])
+				->executeStatement();
+		}
+	}
+
+	public function testFindIdsByQueryLimitsBodyMatchesAcrossChunks(): void {
+		$mailbox = new Mailbox();
+		$mailbox->setId(1);
+		$this->insertMessagesSentInUidOrder(range(1, 1500), 1);
+
+		$newest = $this->mapper->findIdsByQuery($mailbox, new SearchQuery(), 'DESC', 3, range(1, 1500));
+		$oldest = $this->mapper->findIdsByQuery($mailbox, new SearchQuery(), 'ASC', 3, range(1, 1500));
+
+		self::assertSame([1500, 1499, 1498], $newest);
+		self::assertSame([1, 2, 3], $oldest);
+	}
+
+	public function testFindIdsByQueryReturnsSubjectMatchOnceAcrossChunks(): void {
+		$mailbox = new Mailbox();
+		$mailbox->setId(1);
+		$this->insertMessagesSentInUidOrder(range(1, 1100), 1, [1 => 'needle']);
+		$searchQuery = new SearchQuery();
+		$searchQuery->addSubject('needle');
+
+		// Body matches in two chunks, the subject match is not among them
+		$result = $this->mapper->findIdsByQuery($mailbox, $searchQuery, 'DESC', null, range(2, 1100));
+
+		self::assertCount(1100, $result);
+		self::assertSame(1100, $result[0]);
+		self::assertSame(1, $result[1099]);
+	}
+
 	public function testDeleteByUid(): void {
 		$mailbox = new Mailbox();
 		$mailbox->setId(1);

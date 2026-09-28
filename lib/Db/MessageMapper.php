@@ -939,14 +939,48 @@ class MessageMapper extends QBMapper {
 		}
 
 		if ($uids !== null) {
-			return array_flat_map(function (array $chunk) use ($qb, $select) {
-				$qb->setParameter('uids', $chunk, IQueryBuilder::PARAM_INT_ARRAY);
-				return array_map(static fn (Message $message) => $message->getId(), $this->findEntities($select));
-			}, array_chunk($uids, 1000));
+			return $this->findIdsByUidChunks($select, $uids, $sortOrder === 'ASC', $limit);
 		}
 
 		$result = array_map(static fn (Message $message) => $message->getId(), $this->findEntities($select));
 		return $result;
+	}
+
+	/**
+	 * Run $select once per chunk of $uids.
+	 *
+	 * The order and limit of $select apply per chunk, so the results of several
+	 * chunks are merged by sent date and limited again.
+	 *
+	 * @param int[] $uids
+	 *
+	 * @return int[]
+	 */
+	private function findIdsByUidChunks(IQueryBuilder $select, array $uids, bool $ascending, ?int $limit): array {
+		$chunks = array_chunk($uids, 1000);
+		/** @var array<int, int> $sentAtById */
+		$sentAtById = [];
+		foreach ($chunks as $chunk) {
+			$select->setParameter('uids', $chunk, IQueryBuilder::PARAM_INT_ARRAY);
+			foreach ($this->findEntities($select) as $message) {
+				// Conditions ORed with the chunk (e.g. a subject match) are found by every chunk
+				$sentAtById[$message->getId()] = (int)$message->getSentAt();
+			}
+		}
+
+		if (count($chunks) > 1) {
+			// Stable sort, messages sent at the same time keep the database order
+			if ($ascending) {
+				asort($sentAtById);
+			} else {
+				arsort($sentAtById);
+			}
+			if ($limit !== null) {
+				$sentAtById = array_slice($sentAtById, 0, $limit, true);
+			}
+		}
+
+		return array_keys($sentAtById);
 	}
 
 	public function findIdsGloballyByQuery(IUser $user, SearchQuery $query, ?int $limit, ?array $uids = null): array {
@@ -1078,10 +1112,7 @@ class MessageMapper extends QBMapper {
 		}
 
 		if ($uids !== null) {
-			return array_flat_map(function (array $chunk) use ($select) {
-				$select->setParameter('uids', $chunk, IQueryBuilder::PARAM_INT_ARRAY);
-				return array_map(static fn (Message $message) => $message->getId(), $this->findEntities($select));
-			}, array_chunk($uids, 1000));
+			return $this->findIdsByUidChunks($select, $uids, false, $limit);
 		}
 
 		return array_map(static fn (Message $message) => $message->getId(), $this->findEntities($select));
