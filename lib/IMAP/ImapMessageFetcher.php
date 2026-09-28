@@ -62,6 +62,8 @@ class ImapMessageFetcher {
 	private bool $isOneClickUnsubscribe = false;
 	private ?string $unsubscribeMailto = null;
 	private bool $isPgpMimeEncrypted = false;
+	/** @var array<string, array{body: string, encoding: ?string}> body part number => raw body and transfer encoding */
+	private array $prefetchedBodyParts = [];
 
 	public function __construct(
 		private int $uid,
@@ -204,6 +206,10 @@ class ImapMessageFetcher {
 				$structure = Horde_Mime_Part::parseMessage($signedText, [
 					'forcemime' => true,
 				]);
+			}
+
+			if (!$isEncrypted && !$isSigned) {
+				$this->prefetchBodyParts($structure);
 			}
 
 			// debugging below
@@ -470,7 +476,14 @@ class ImapMessageFetcher {
 	 * @throws ServiceException
 	 */
 	private function loadBodyData(Horde_Mime_Part $p, string $partNo, bool $isFetched): string {
-		if (!$isFetched) {
+		if (!$isFetched && isset($this->prefetchedBodyParts[$partNo])) {
+			['body' => $data, 'encoding' => $enc] = $this->prefetchedBodyParts[$partNo];
+			unset($this->prefetchedBodyParts[$partNo]);
+			if ($enc) {
+				$p->setTransferEncoding($enc);
+			}
+			$p->setContents($data);
+		} elseif (!$isFetched) {
 			$fetch_query = new Horde_Imap_Client_Fetch_Query();
 			$ids = new Horde_Imap_Client_Ids($this->uid);
 
@@ -498,6 +511,85 @@ class ImapMessageFetcher {
 		}
 
 		return $this->converter->convert($p);
+	}
+
+	/**
+	 * Fetch the text parts that are likely to be displayed in one request
+	 * instead of one request per part. Parts that are not prefetched here
+	 * are still loaded individually by loadBodyData().
+	 *
+	 * @throws Horde_Imap_Client_Exception
+	 * @throws Horde_Imap_Client_Exception_NoSupportExtension
+	 */
+	private function prefetchBodyParts(Horde_Mime_Part $structure): void {
+		if ($structure->getPrimaryType() !== 'multipart') {
+			// A single part is fetched with one request anyway
+			return;
+		}
+		$partNos = [];
+		$this->collectBodyPartNumbers($structure, '', $partNos);
+		if (count($partNos) < 2) {
+			return;
+		}
+
+		$query = new Horde_Imap_Client_Fetch_Query();
+		foreach ($partNos as $partNo) {
+			$query->bodyPart($partNo, [
+				'peek' => true
+			]);
+			$query->mimeHeader($partNo, [
+				'peek' => true
+			]);
+		}
+		$result = $this->client->fetch($this->mailbox, $query, ['ids' => new Horde_Imap_Client_Ids($this->uid)]);
+		$fetch = $result[$this->uid];
+		if (is_null($fetch)) {
+			return;
+		}
+		foreach ($partNos as $partNo) {
+			$body = $fetch->getBodyPart($partNo);
+			if ($body === '') {
+				// Missing or empty, let loadBodyData() fetch it on its own
+				continue;
+			}
+			$mimeHeaders = $fetch->getMimeHeader($partNo, Horde_Imap_Client_Data_Fetch::HEADER_PARSE);
+			$this->prefetchedBodyParts[$partNo] = [
+				'body' => $body,
+				'encoding' => $mimeHeaders->getValue('content-transfer-encoding'),
+			];
+		}
+	}
+
+	/**
+	 * @param string[] $partNos
+	 */
+	private function collectBodyPartNumbers(Horde_Mime_Part $part, string $prefix, array &$partNos): void {
+		$i = 1;
+		foreach ($part->getParts() as $p) {
+			$partNo = $prefix === '' ? (string)$i : "$prefix.$i";
+			$i++;
+			if ($p->getPrimaryType() === 'multipart') {
+				// getPart() does not look into attached multiparts
+				if (!$p->isAttachment() && $p->getName() === null) {
+					$this->collectBodyPartNumbers($p, $partNo, $partNos);
+				}
+			} elseif ($this->isDisplayedTextPart($p)) {
+				$partNos[] = $partNo;
+			}
+		}
+	}
+
+	/**
+	 * Mirrors the parts getPart() reads the body of: plain text and HTML
+	 * bodies, and iMIP calendar data.
+	 */
+	private function isDisplayedTextPart(Horde_Mime_Part $p): bool {
+		if ($p->getType() === 'text/calendar') {
+			return isset($p->getAllContentTypeParameters()['method']);
+		}
+		return in_array($p->getType(), ['text/plain', 'text/html'], true)
+			&& !$p->isAttachment()
+			&& $p->getName() === null;
 	}
 
 	private function hasAttachments(Horde_Mime_Part $part): bool {
