@@ -286,6 +286,7 @@
 			</NcAppSettingsShortcutsSection>
 
 			<NcAppSettingsSection id="about-settings" :name="t('mail', 'About')">
+				<NcFormGroup :label="t('mail', 'Version')" :description="`${mailVersion}-db`" />
 				<NcFormGroup
 					:label="t('mail', 'Acknowledgements')"
 					:description="t('mail', 'This application includes CKEditor, an open-source editor. Copyright © CKEditor contributors. Licensed under GPLv2.')" />
