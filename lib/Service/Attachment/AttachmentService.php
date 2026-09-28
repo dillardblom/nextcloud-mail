@@ -253,8 +253,9 @@ class AttachmentService implements IAttachmentService {
 	 * @return list<array{id: string, fileName: string|null, mime: string, downloadUrl: string, mimeUrl: string}>
 	 */
 	public function getAttachmentNames(Account $account, Mailbox $mailbox, Message $message, \Horde_Imap_Client_Socket $client): array {
-		if ($message->getStructureAnalyzed() === true && $message->getFlagAttachments() === false) {
+		if ($message->getStructureAnalyzed() === true && $message->getFlagAttachments() === false && $message->isEncrypted() !== true) {
 			// Structure analysis already confirmed no attachments, nothing to fetch.
+			// Encrypted messages are excluded: their structure hides the attachments.
 			return [];
 		}
 
