@@ -716,6 +716,7 @@ class MessagesController extends Controller {
 				} finally {
 					$client->logout();
 				}
+				$cacheInstance->set($imapMessageCacheKey, $html, 600);
 			}
 
 			$htmlResponse = $plain
