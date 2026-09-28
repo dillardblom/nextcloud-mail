@@ -181,9 +181,13 @@ export default {
 	},
 
 	watch: {
-		mailbox() {
+		mailbox(mailbox) {
 			this.loadEnvelopes()
 				.then(() => {
+					if (this.mailbox.databaseId !== mailbox.databaseId) {
+						// Another folder was opened in the meantime, it syncs on its own
+						return
+					}
 					logger.debug(`syncing mailbox ${this.mailbox.databaseId} (${this.query}) after folder change`)
 					this.sync(false)
 				})
@@ -212,8 +216,14 @@ export default {
 		}
 
 		await this.loadEnvelopes()
+		if (this.isDestroyed) {
+			return
+		}
 		logger.debug(`syncing folder ${this.mailbox.databaseId} (${this.searchQuery}) after mount`)
 		await this.sync(false)
+		if (this.isDestroyed) {
+			return
+		}
 
 		await this.prefetchOtherMailboxes()
 
@@ -226,16 +236,21 @@ export default {
 		this.bus.off('archive', this.onArchive)
 		this.bus.off('shortcut', this.handleShortcut)
 		this.stopInterval()
+		this.isDestroyed = true
+		this.envelopesAbortController?.abort()
 	},
 
 	methods: {
-		initializeCache() {
+		initializeCache(signal) {
 			this.loadingCacheInitialization = true
 			this.error = false
 
 			logger.debug(`syncing folder ${this.mailbox.databaseId} (${this.query}) during cache initialization`)
 			this.sync(true)
 				.then(() => {
+					if (signal?.aborted) {
+						return
+					}
 					this.loadingCacheInitialization = false
 
 					return this.loadEnvelopes()
@@ -244,11 +259,17 @@ export default {
 
 		async loadEnvelopes() {
 			logger.debug(`Fetching envelopes for folder ${this.mailbox.databaseId} (${this.searchQuery})`, this.mailbox)
+			// Only the latest folder/search/sort request may update the list state
+			this.envelopesAbortController?.abort()
+			const abortController = new AbortController()
+			this.envelopesAbortController = abortController
 			this.endReached = false
 			if (!this.syncedMailboxes.has(this.mailbox.databaseId + (this.searchQuery ?? ''))) {
 				// Only trigger skeleton if we didn't sync envelopes yet
 				this.loadingEnvelopes = true
 			} else {
+				// A superseded request may have left the skeleton on
+				this.loadingEnvelopes = false
 				this.skipListTransition = true
 				this.$nextTick(() => {
 					this.skipListTransition = false
@@ -263,17 +284,28 @@ export default {
 					mailboxId: this.mailbox.databaseId,
 					query: this.searchQuery,
 					limit: this.initialPageSize,
+					signal: abortController.signal,
 				})
+				if (abortController.signal.aborted) {
+					return
+				}
 
 				logger.debug(envelopes.length + ' envelopes fetched', { envelopes })
 
 				this.syncedMailboxes.add(this.mailbox.databaseId + (this.searchQuery ?? ''))
 				this.loadingEnvelopes = false
 			} catch (error) {
+				if (abortController.signal.aborted) {
+					logger.debug(`Fetching envelopes for folder ${this.mailbox.databaseId} (${this.searchQuery}) was superseded`)
+					return
+				}
 				await matchError(error, {
 					[MailboxLockedError.getName()]: async (error) => {
 						logger.info(`Mailbox ${this.mailbox.databaseId} (${this.searchQuery}) is locked`, { error })
 						await wait(15 * 1000)
+						if (abortController.signal.aborted) {
+							return
+						}
 						// Keep trying
 						await this.loadEnvelopes()
 					},
@@ -282,7 +314,7 @@ export default {
 						this.loadingEnvelopes = false
 
 						try {
-							await this.initializeCache()
+							await this.initializeCache(abortController.signal)
 						} catch (error) {
 							logger.error(`Could not initialize cache of folder ${this.mailbox.databaseId} (${this.searchQuery})`, { error })
 							this.error = error

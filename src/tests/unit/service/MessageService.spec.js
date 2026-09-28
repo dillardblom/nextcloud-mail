@@ -53,4 +53,29 @@ describe('service/MessageService test suite', () => {
 			},
 		})
 	})
+
+	it('should pass an abort signal to the request', async () => {
+		generateUrl.mockReturnValueOnce('/generated-url')
+		axios.get.mockResolvedValueOnce({ data: [] })
+		const abortController = new AbortController()
+
+		await MessageService.fetchEnvelopes(
+			13, // account id
+			21, // mailbox id
+			undefined, // query
+			undefined, // cursor
+			undefined, // limit
+			undefined, // sort order
+			undefined, // layout
+			undefined, // cache buster
+			abortController.signal,
+		)
+
+		expect(axios.get).toHaveBeenCalledWith('/generated-url', {
+			params: {
+				mailboxId: 21,
+			},
+			signal: abortController.signal,
+		})
+	})
 })
