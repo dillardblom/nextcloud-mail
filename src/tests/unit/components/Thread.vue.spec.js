@@ -606,6 +606,123 @@ describe('Thread', () => {
 		})
 	})
 
+	describe('reply shortcut', () => {
+		const mountThread = () => shallowMount(Thread, {
+			mocks: {
+				$route: {
+					params: {
+						threadId: 200,
+					},
+				},
+			},
+			store,
+			localVue,
+		})
+
+		const replyShortcut = (target = document.body) => ({
+			code: 'KeyR',
+			key: 'r',
+			ctrlKey: true,
+			metaKey: false,
+			shiftKey: false,
+			altKey: false,
+			target,
+			preventDefault: vi.fn(),
+		})
+
+		beforeEach(() => {
+			store.startComposerSession = vi.fn()
+		})
+
+		it('replies to the open message', async () => {
+			const view = mountThread()
+			const event = replyShortcut()
+
+			await view.vm.handleKeyDown(event)
+
+			expect(event.preventDefault).toHaveBeenCalled()
+			expect(store.startComposerSession).toHaveBeenCalledWith({
+				reply: {
+					mode: 'reply',
+					data: view.vm.thread[view.vm.thread.length - 1],
+				},
+			})
+		})
+
+		it('keeps the native shortcut while typing', async () => {
+			const view = mountThread()
+			const event = replyShortcut(document.createElement('textarea'))
+
+			await view.vm.handleKeyDown(event)
+
+			expect(event.preventDefault).not.toHaveBeenCalled()
+			expect(store.startComposerSession).not.toHaveBeenCalled()
+		})
+
+		it('does not reply while a dialog is open', async () => {
+			const mask = document.createElement('div')
+			mask.className = 'modal-mask'
+			document.body.appendChild(mask)
+			const view = mountThread()
+			const event = replyShortcut()
+
+			await view.vm.handleKeyDown(event)
+
+			expect(event.preventDefault).not.toHaveBeenCalled()
+			expect(store.startComposerSession).not.toHaveBeenCalled()
+			mask.remove()
+		})
+
+		it('replies to the message the shortcut came from inside its frame', () => {
+			const view = mountThread()
+			const envelope = view.vm.thread[0]
+
+			view.vm.replyTo(envelope)
+
+			expect(store.startComposerSession).toHaveBeenCalledWith({
+				reply: {
+					mode: 'reply',
+					data: envelope,
+				},
+			})
+		})
+
+		it('does not open a second composer and keeps the page from reloading over it', async () => {
+			store.showMessageComposer = true
+			const view = mountThread()
+			const event = replyShortcut()
+
+			await view.vm.handleKeyDown(event)
+
+			expect(event.preventDefault).toHaveBeenCalled()
+			expect(store.startComposerSession).not.toHaveBeenCalled()
+		})
+
+		it('ignores the repeats of a held shortcut', async () => {
+			const view = mountThread()
+			const event = { ...replyShortcut(), repeat: true }
+
+			await view.vm.handleKeyDown(event)
+
+			expect(event.preventDefault).toHaveBeenCalled()
+			expect(store.startComposerSession).not.toHaveBeenCalled()
+		})
+
+		it('starts only one reply while the first one is still opening', async () => {
+			let finishOpening
+			store.startComposerSession = vi.fn(() => new Promise((resolve) => {
+				finishOpening = resolve
+			}))
+			const view = mountThread()
+
+			view.vm.handleKeyDown(replyShortcut())
+			await view.vm.handleKeyDown(replyShortcut())
+			finishOpening()
+
+			expect(store.startComposerSession).toHaveBeenCalledTimes(1)
+		})
+	})
+
 	describe('browser print', () => {
 		const notice = () => document.getElementById('mail-browser-print-notice')
 

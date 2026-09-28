@@ -350,6 +350,7 @@
 			:reply-button-label="replyButtonLabel"
 			@load="onMessageLoaded"
 			@print-shortcut="$emit('print-shortcut')"
+			@reply-shortcut="$emit('reply-shortcut')"
 			@translate="onOpenTranslationModal"
 			@reply="(body) => onReply(body, showFollowUpHeader)" />
 		<Error

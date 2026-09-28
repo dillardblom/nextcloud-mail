@@ -43,6 +43,7 @@ import logger from '../logger.js'
 import { trustSender } from '../service/TrustedSenderService.js'
 import { detectForeignLanguage } from '../util/languageDetection.ts'
 import { isPrintShortcut } from '../util/printMessage.ts'
+import { isReplyShortcut } from '../util/replyShortcut.js'
 
 export default {
 	name: 'MessageHTMLBody',
@@ -140,6 +141,13 @@ export default {
 		 * @param {KeyboardEvent} event the frame's keydown event
 		 */
 		onFrameKeyDown(event) {
+			if (isReplyShortcut(event)) {
+				event.preventDefault()
+				if (!event.repeat) {
+					this.$emit('reply-shortcut')
+				}
+				return
+			}
 			if (!isPrintShortcut(event)) {
 				return
 			}

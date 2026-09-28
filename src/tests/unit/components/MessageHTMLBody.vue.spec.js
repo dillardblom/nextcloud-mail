@@ -177,4 +177,29 @@ describe('MessageHTMLBody', () => {
 			expect(view.emitted('print-shortcut')).toBeUndefined()
 		})
 	})
+
+	describe('reply shortcut', () => {
+		it('takes Ctrl+R from inside the frame and keeps the page from reloading', () => {
+			const view = mountBody()
+			view.vm.onMessageFrameLoad()
+
+			const event = keydown('r')
+			view.vm.getIframeDoc().dispatchEvent(event)
+
+			expect(view.emitted('reply-shortcut')).toHaveLength(1)
+			expect(view.emitted('print-shortcut')).toBeUndefined()
+			expect(event.defaultPrevented).toBe(true)
+		})
+
+		it('leaves Ctrl+Shift+R to the browser', () => {
+			const view = mountBody()
+			view.vm.onMessageFrameLoad()
+
+			const event = keydown('r', { ctrlKey: true, shiftKey: true })
+			view.vm.getIframeDoc().dispatchEvent(event)
+
+			expect(view.emitted('reply-shortcut')).toBeUndefined()
+			expect(event.defaultPrevented).toBe(false)
+		})
+	})
 })

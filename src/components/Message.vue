@@ -36,6 +36,7 @@
 			:full-height="fullHeight"
 			@load="$emit('load', $event)"
 			@print-shortcut="$emit('print-shortcut')"
+			@reply-shortcut="$emit('reply-shortcut')"
 			@translate="$emit('translate', $event)" />
 		<MessageEncryptedBody
 			v-else-if="isEncrypted || isPgpMimeEncrypted"
