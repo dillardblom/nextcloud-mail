@@ -670,6 +670,7 @@ export default {
 
 <style lang="scss" scoped>
 $composer-width: 600px;
+$composer-maximized-max-width: 1400px;
 $recipient-pane-width: 400px;
 $composer-height: 500px;
 $header-height: calc(var(--default-clickable-area) + calc(var(--default-grid-baseline) * 2));
@@ -697,13 +698,19 @@ $panel-max-height: calc(100vh - (var(--body-container-margin, 0px) + var(--defau
 	border-radius: var(--border-radius-large);
 	box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
 
-	&--maximized {
-		top: calc(var(--header-height, 44px) + var(--default-grid-baseline));
-		height: auto;
-	}
-
 	&--with-recipient {
 		width: calc(#{$composer-width} + #{$recipient-pane-width});
+	}
+
+	// Height from the viewport, not top: a backdrop-filter on #content-vue makes it the
+	// containing block of this fixed panel, which would shift top by the header height
+	&--maximized {
+		inset-inline: calc(var(--body-container-margin, 0px) + var(--default-grid-baseline));
+		width: auto;
+		max-width: $composer-maximized-max-width;
+		height: calc(100vh - var(--header-height, 44px) - var(--default-grid-baseline) - var(--body-container-margin, 0px) - #{$bottom-offset});
+		max-height: none;
+		margin-inline: auto;
 	}
 
 	@media (max-width: #{$composer-width}) {
