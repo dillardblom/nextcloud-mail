@@ -951,11 +951,11 @@ class MessageMapper extends QBMapper {
 		}
 
 		if ($uids !== null) {
-			return $this->findIdsByChunkedParameter($select, self::PARAM_UIDS, $uids);
+			return $this->findIdsByChunkedParameter($select, self::PARAM_UIDS, $uids, $sortOrder === 'ASC', $limit);
 		}
 
 		if ($ids !== null) {
-			return $this->findIdsByChunkedParameter($select, self::PARAM_IDS, $ids);
+			return $this->findIdsByChunkedParameter($select, self::PARAM_IDS, $ids, $sortOrder === 'ASC', $limit);
 		}
 
 		$result = array_map(static fn (Message $message) => $message->getId(), $this->findEntities($select));
@@ -965,15 +965,38 @@ class MessageMapper extends QBMapper {
 	/**
 	 * Run $select once per chunk of $values, binding each chunk to $parameter.
 	 *
+	 * The order and limit of $select apply per chunk, so the results of several
+	 * chunks are merged by sent date and limited again.
+	 *
 	 * @param int[] $values
 	 *
 	 * @return int[]
 	 */
-	private function findIdsByChunkedParameter(IQueryBuilder $select, string $parameter, array $values): array {
-		return array_flat_map(function (array $chunk) use ($select, $parameter) {
+	private function findIdsByChunkedParameter(IQueryBuilder $select, string $parameter, array $values, bool $ascending, ?int $limit): array {
+		$chunks = array_chunk($values, self::MAX_IN_PARAMETERS);
+		/** @var array<int, int> $sentAtById */
+		$sentAtById = [];
+		foreach ($chunks as $chunk) {
 			$select->setParameter($parameter, $chunk, IQueryBuilder::PARAM_INT_ARRAY);
-			return array_map(static fn (Message $message) => $message->getId(), $this->findEntities($select));
-		}, array_chunk($values, self::MAX_IN_PARAMETERS));
+			foreach ($this->findEntities($select) as $message) {
+				// Conditions ORed with the chunk (e.g. a subject match) are found by every chunk
+				$sentAtById[$message->getId()] = (int)$message->getSentAt();
+			}
+		}
+
+		if (count($chunks) > 1) {
+			// Stable sort, messages sent at the same time keep the database order
+			if ($ascending) {
+				asort($sentAtById);
+			} else {
+				arsort($sentAtById);
+			}
+			if ($limit !== null) {
+				$sentAtById = array_slice($sentAtById, 0, $limit, true);
+			}
+		}
+
+		return array_keys($sentAtById);
 	}
 
 	public function findIdsGloballyByQuery(IUser $user, SearchQuery $query, ?int $limit, ?array $uids = null): array {
@@ -1105,7 +1128,7 @@ class MessageMapper extends QBMapper {
 		}
 
 		if ($uids !== null) {
-			return $this->findIdsByChunkedParameter($select, self::PARAM_UIDS, $uids);
+			return $this->findIdsByChunkedParameter($select, self::PARAM_UIDS, $uids, false, $limit);
 		}
 
 		return array_map(static fn (Message $message) => $message->getId(), $this->findEntities($select));
