@@ -197,6 +197,37 @@ describe('Vuex store actions', () => {
 		})
 	})
 
+	it('passes the abort signal to every mailbox of a unified mailbox', async () => {
+		const account = {
+			id: 13,
+			personalNamespace: 'INBOX.',
+			mailboxes: [],
+		}
+		store.addAccountMutation(account)
+		store.addMailboxMutation({
+			account,
+			mailbox: {
+				id: 'INBOX',
+				name: 'INBOX',
+				databaseId: 21,
+				accountId: 13,
+				specialRole: 'inbox',
+			},
+		})
+		store.addEnvelopesMutation = vi.fn()
+		MessageService.fetchEnvelopes.mockResolvedValueOnce([])
+		const abortController = new AbortController()
+
+		await store.fetchEnvelopes({
+			mailboxId: UNIFIED_INBOX_ID,
+			signal: abortController.signal,
+		})
+
+		expect(MessageService.fetchEnvelopes).toHaveBeenCalledTimes(1)
+		expect(MessageService.fetchEnvelopes.mock.calls[0][1]).toBe(21)
+		expect(MessageService.fetchEnvelopes.mock.calls[0][8]).toBe(abortController.signal)
+	})
+
 	it('fetches the next individual page', async () => {
 		const msgs1 = reverse(range(30, 40))
 		const page1 = reverse(range(10, 30))
@@ -674,6 +705,7 @@ describe('Vuex store actions', () => {
 			undefined, // sort ordre
 			undefined, // layout
 			'abcdef123', // cache buster
+			undefined, // abort signal
 		)
 	})
 
