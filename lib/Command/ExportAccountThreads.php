@@ -41,9 +41,9 @@ final class ExportAccountThreads extends Command {
 
 	protected function configure(): void {
 		$this->setName('mail:account:export-threads');
-		$this->setDescription('Exports a user\'s account threads');
-		$this->addArgument(self::ARGUMENT_ACCOUNT_ID, InputArgument::REQUIRED);
-		$this->addOption(self::OPTION_REDACT, 'r', InputOption::VALUE_NONE);
+		$this->setDescription('Export the threading data of an account');
+		$this->addArgument(self::ARGUMENT_ACCOUNT_ID, InputArgument::REQUIRED, 'Id of the account, see mail:account:list');
+		$this->addOption(self::OPTION_REDACT, 'r', InputOption::VALUE_NONE, 'Replace subjects and message ids with hashes');
 	}
 
 	protected function execute(InputInterface $input, OutputInterface $output): int {

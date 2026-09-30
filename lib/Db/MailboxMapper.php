@@ -51,6 +51,39 @@ class MailboxMapper extends QBMapper {
 	}
 
 	/**
+	 * Count the folders and the messages last seen in them per account
+	 *
+	 * @param int[] $accountIds
+	 *
+	 * @return array<int, array{folders: int, messages: int}> keyed by account id
+	 */
+	public function countByAccountIds(array $accountIds): array {
+		if ($accountIds === []) {
+			return [];
+		}
+
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('account_id')
+			->selectAlias($qb->func()->count('*'), 'folders')
+			->selectAlias($qb->func()->sum('messages'), 'messages')
+			->from($this->getTableName())
+			->where($qb->expr()->in('account_id', $qb->createNamedParameter($accountIds, IQueryBuilder::PARAM_INT_ARRAY), IQueryBuilder::PARAM_INT_ARRAY))
+			->groupBy('account_id');
+
+		$counts = [];
+		$result = $qb->executeQuery();
+		while (($row = $result->fetch()) !== false) {
+			$counts[(int)$row['account_id']] = [
+				'folders' => (int)$row['folders'],
+				'messages' => (int)$row['messages'],
+			];
+		}
+		$result->closeCursor();
+
+		return $counts;
+	}
+
+	/**
 	 * @return \Generator<int>
 	 */
 	public function findAllIds(): \Generator {

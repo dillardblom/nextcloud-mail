@@ -159,4 +159,32 @@ class MailboxMapperTest extends TestCase {
 		$resultB = $this->mapper->find($account, 'Test ');
 		$this->assertSame('Test ', $resultB->getName());
 	}
+
+	public function testCountByAccountIds(): void {
+		foreach ([[13, 'INBOX', 10], [13, 'Sent', 5], [14, 'INBOX', 3], [15, 'INBOX', 7]] as [$accountId, $name, $messages]) {
+			$qb = $this->db->getQueryBuilder();
+			$qb->insert($this->mapper->getTableName())
+				->values([
+					'name' => $qb->createNamedParameter($name),
+					'account_id' => $qb->createNamedParameter($accountId, IQueryBuilder::PARAM_INT),
+					'sync_new_token' => $qb->createNamedParameter('VTEsVjE0Mjk1NjE2NzBMNDAz'),
+					'sync_changed_token' => $qb->createNamedParameter('VTEsVjE0Mjk1NjE2NzBMNDAz'),
+					'sync_vanished_token' => $qb->createNamedParameter('VTEsVjE0Mjk1NjE2NzBMNDAz'),
+					'delimiter' => $qb->createNamedParameter('.'),
+					'messages' => $qb->createNamedParameter($messages, IQueryBuilder::PARAM_INT),
+					'unseen' => $qb->createNamedParameter(0, IQueryBuilder::PARAM_INT),
+					'selectable' => $qb->createNamedParameter(true, IQueryBuilder::PARAM_BOOL),
+					'name_hash' => $qb->createNamedParameter(md5($name)),
+				]);
+			$qb->executeStatement();
+		}
+
+		$counts = $this->mapper->countByAccountIds([13, 14, 99]);
+
+		$this->assertSame([
+			13 => ['folders' => 2, 'messages' => 15],
+			14 => ['folders' => 1, 'messages' => 3],
+		], $counts);
+		$this->assertSame([], $this->mapper->countByAccountIds([]));
+	}
 }

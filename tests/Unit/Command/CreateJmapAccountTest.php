@@ -61,7 +61,7 @@ class CreateJmapAccountTest extends TestCase {
 	}
 
 	public function testDescription(): void {
-		$this->assertSame('creates a JMAP mail account', $this->command->getDescription());
+		$this->assertSame('Create a JMAP mail account for a user', $this->command->getDescription());
 	}
 
 	public function testArguments(): void {

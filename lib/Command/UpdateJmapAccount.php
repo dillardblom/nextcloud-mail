@@ -40,7 +40,7 @@ final class UpdateJmapAccount extends Command {
 	protected function configure(): void {
 		$this->setName('mail:account:update-jmap');
 		$this->setDescription('Update a JMAP mail account');
-		$this->addArgument(self::ARGUMENT_ACCOUNT_ID, InputArgument::REQUIRED);
+		$this->addArgument(self::ARGUMENT_ACCOUNT_ID, InputArgument::REQUIRED, 'Id of the account, see mail:account:list');
 
 		$this->addOption(self::ARGUMENT_NAME, null, InputOption::VALUE_OPTIONAL);
 		$this->addOption(self::ARGUMENT_EMAIL, null, InputOption::VALUE_OPTIONAL);
