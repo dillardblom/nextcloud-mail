@@ -32,8 +32,8 @@ class ClearMailboxCache extends Command {
 
 	protected function configure(): void {
 		$this->setName('mail:mailbox:clear-cache');
-		$this->setDescription('Clear the cached messages of a mailbox. The mailbox will be resynced from IMAP on its next regular sync');
-		$this->addArgument(self::ARGUMENT_MAILBOX_ID, InputArgument::REQUIRED, 'Id of the mailbox to clear');
+		$this->setDescription('Clear the cached messages of a folder (IMAP mailbox). The folder is synced again from IMAP on its next regular sync');
+		$this->addArgument(self::ARGUMENT_MAILBOX_ID, InputArgument::REQUIRED, 'Id of the folder, see mail:mailbox:list');
 	}
 
 	protected function execute(InputInterface $input, OutputInterface $output): int {

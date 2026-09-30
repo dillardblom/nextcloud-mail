@@ -34,8 +34,8 @@ class InspectMailbox extends Command {
 
 	protected function configure(): void {
 		$this->setName('mail:mailbox:info');
-		$this->setDescription('Show information about a mailbox');
-		$this->addArgument(self::ARGUMENT_MAILBOX_ID, InputArgument::REQUIRED, 'Id of the mailbox');
+		$this->setDescription('Show information about a folder (IMAP mailbox)');
+		$this->addArgument(self::ARGUMENT_MAILBOX_ID, InputArgument::REQUIRED, 'Id of the folder, see mail:mailbox:list');
 	}
 
 	protected function execute(InputInterface $input, OutputInterface $output): int {

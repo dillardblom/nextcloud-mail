@@ -29,7 +29,7 @@ final class CleanUp extends Command {
 	 */
 	protected function configure() {
 		$this->setName('mail:clean-up');
-		$this->setDescription('clean up all orphaned data');
+		$this->setDescription('Clean up orphaned data of the Mail app');
 	}
 
 	protected function execute(InputInterface $input, OutputInterface $output): int {

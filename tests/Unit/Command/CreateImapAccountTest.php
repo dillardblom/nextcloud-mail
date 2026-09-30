@@ -16,6 +16,7 @@ use OCA\Mail\Service\Classification\ClassificationSettingsService;
 use OCP\IUserManager;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Console\Tester\CommandTester;
 
 class CreateImapAccountTest extends TestCase {
 	private $service;
@@ -62,7 +63,7 @@ class CreateImapAccountTest extends TestCase {
 	}
 
 	public function testDescription() {
-		$this->assertSame('creates an IMAP mail account', $this->command->getDescription());
+		$this->assertSame('Create an IMAP mail account for a user', $this->command->getDescription());
 	}
 
 	public function testArguments() {
@@ -110,5 +111,41 @@ class CreateImapAccountTest extends TestCase {
 			->willReturn(false);
 
 		$this->assertEquals(1, $this->command->run($input, $output));
+	}
+
+	public function testRejectsInvalidValues(): void {
+		$this->userManager->method('userExists')
+			->with('alice')
+			->willReturn(true);
+		$this->service->expects($this->never())
+			->method('save');
+
+		$tester = new CommandTester($this->command);
+		$exitCode = $tester->execute([
+			'user-id' => 'alice',
+			'name' => 'Alice',
+			'email' => 'alice@example.com',
+			'imap-host' => 'mail.example.com',
+			'imap-port' => '993',
+			'imap-ssl-mode' => 'SSL',
+			'imap-user' => 'alice',
+			'imap-password' => 'secret',
+			'smtp-host' => 'mail.example.com',
+			'smtp-port' => '70000',
+			'smtp-ssl-mode' => 'tls',
+			'smtp-user' => 'alice',
+			'smtp-password' => 'secret',
+			'auth-method' => 'oauth',
+		]);
+
+		$this->assertSame(2, $exitCode);
+		$display = $tester->getDisplay();
+		$this->assertStringContainsString('Invalid imap-ssl-mode "SSL". Use one of: none, ssl, tls', $display);
+		$this->assertStringContainsString('Invalid smtp-port "70000". Use a number between 1 and 65535', $display);
+		$this->assertStringContainsString('Invalid auth-method "oauth". Use one of: password, xoauth2', $display);
+	}
+
+	public function testHelpContainsExample(): void {
+		$this->assertStringContainsString('occ mail:account:create-imap alice', $this->command->getHelp());
 	}
 }

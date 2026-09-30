@@ -18,6 +18,7 @@ use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
+use function array_filter;
 
 final class UpdateImapAccount extends Command {
 	public const ARGUMENT_ACCOUNT_ID = 'account-id';
@@ -46,24 +47,34 @@ final class UpdateImapAccount extends Command {
 		$this->setName('mail:account:update-imap');
 		$this->setAliases(['mail:account:update']);
 		$this->setDescription('Update an IMAP mail account');
-		$this->addArgument(self::ARGUMENT_ACCOUNT_ID, InputArgument::REQUIRED);
+		$this->addArgument(self::ARGUMENT_ACCOUNT_ID, InputArgument::REQUIRED, 'Id of the account, see mail:account:list');
+		$this->setHelp(<<<'HELP'
+Only the options you pass are changed. Security modes: ssl (implicit TLS,
+e.g. port 993/465), tls (STARTTLS, e.g. port 143/587) or none.
 
-		$this->addOption(self::ARGUMENT_NAME, '', InputOption::VALUE_OPTIONAL);
-		$this->addOption(self::ARGUMENT_EMAIL, '', InputOption::VALUE_OPTIONAL);
+Example, move an account to STARTTLS on port 143:
+  <info>occ mail:account:update-imap 42 --imap-port=143 --imap-ssl-mode=tls</info>
 
-		$this->addOption(self::ARGUMENT_IMAP_HOST, '', InputOption::VALUE_OPTIONAL);
-		$this->addOption(self::ARGUMENT_IMAP_PORT, '', InputOption::VALUE_OPTIONAL);
-		$this->addOption(self::ARGUMENT_IMAP_SSL_MODE, '', InputOption::VALUE_OPTIONAL);
-		$this->addOption(self::ARGUMENT_IMAP_USER, '', InputOption::VALUE_OPTIONAL);
-		$this->addOption(self::ARGUMENT_IMAP_PASSWORD, '', InputOption::VALUE_OPTIONAL);
+Put a value in quotes when it contains spaces or characters your shell
+interprets, and use single quotes for passwords.
+HELP);
 
-		$this->addOption(self::ARGUMENT_SMTP_HOST, '', InputOption::VALUE_OPTIONAL);
-		$this->addOption(self::ARGUMENT_SMTP_PORT, '', InputOption::VALUE_OPTIONAL);
-		$this->addOption(self::ARGUMENT_SMTP_SSL_MODE, '', InputOption::VALUE_OPTIONAL);
-		$this->addOption(self::ARGUMENT_SMTP_USER, '', InputOption::VALUE_OPTIONAL);
-		$this->addOption(self::ARGUMENT_SMTP_PASSWORD, '', InputOption::VALUE_OPTIONAL);
+		$this->addOption(self::ARGUMENT_NAME, '', InputOption::VALUE_OPTIONAL, 'Display name used as sender name');
+		$this->addOption(self::ARGUMENT_EMAIL, '', InputOption::VALUE_OPTIONAL, 'Email address');
 
-		$this->addOption(self::ARGUMENT_AUTH_METHOD, '', InputOption::VALUE_OPTIONAL);
+		$this->addOption(self::ARGUMENT_IMAP_HOST, '', InputOption::VALUE_OPTIONAL, 'IMAP server hostname');
+		$this->addOption(self::ARGUMENT_IMAP_PORT, '', InputOption::VALUE_OPTIONAL, 'IMAP port, usually 993 (ssl) or 143 (tls or none)');
+		$this->addOption(self::ARGUMENT_IMAP_SSL_MODE, '', InputOption::VALUE_OPTIONAL, 'IMAP security: ssl, tls (STARTTLS) or none');
+		$this->addOption(self::ARGUMENT_IMAP_USER, '', InputOption::VALUE_OPTIONAL, 'IMAP login');
+		$this->addOption(self::ARGUMENT_IMAP_PASSWORD, '', InputOption::VALUE_OPTIONAL, 'IMAP password');
+
+		$this->addOption(self::ARGUMENT_SMTP_HOST, '', InputOption::VALUE_OPTIONAL, 'SMTP server hostname');
+		$this->addOption(self::ARGUMENT_SMTP_PORT, '', InputOption::VALUE_OPTIONAL, 'SMTP port, usually 465 (ssl) or 587 (tls)');
+		$this->addOption(self::ARGUMENT_SMTP_SSL_MODE, '', InputOption::VALUE_OPTIONAL, 'SMTP security: ssl, tls (STARTTLS) or none');
+		$this->addOption(self::ARGUMENT_SMTP_USER, '', InputOption::VALUE_OPTIONAL, 'SMTP login');
+		$this->addOption(self::ARGUMENT_SMTP_PASSWORD, '', InputOption::VALUE_OPTIONAL, 'SMTP password');
+
+		$this->addOption(self::ARGUMENT_AUTH_METHOD, '', InputOption::VALUE_OPTIONAL, 'password or xoauth2');
 	}
 
 	protected function execute(InputInterface $input, OutputInterface $output): int {
@@ -95,6 +106,20 @@ final class UpdateImapAccount extends Command {
 		if ($mailAccount->getProtocol() !== MailAccount::PROTOCOL_IMAP) {
 			$output->writeln('<error>Account ' . $accountId . ' uses protocol ' . $mailAccount->getProtocol() . '. Use mail:account:update-jmap instead.</error>');
 			return self::FAILURE;
+		}
+
+		$errors = array_filter([
+			$imapPort !== null ? ImapAccountValidator::validatePort(self::ARGUMENT_IMAP_PORT, $imapPort) : null,
+			$imapSslMode !== null ? ImapAccountValidator::validateSslMode(self::ARGUMENT_IMAP_SSL_MODE, $imapSslMode) : null,
+			$smtpPort !== null ? ImapAccountValidator::validatePort(self::ARGUMENT_SMTP_PORT, $smtpPort) : null,
+			$smtpSslMode !== null ? ImapAccountValidator::validateSslMode(self::ARGUMENT_SMTP_SSL_MODE, $smtpSslMode) : null,
+			$authMethod !== null ? ImapAccountValidator::validateAuthMethod($authMethod) : null,
+		]);
+		if ($errors !== []) {
+			foreach ($errors as $error) {
+				$output->writeln("<error>$error</error>");
+			}
+			return self::INVALID;
 		}
 
 		$output->writeLn('<info>Found account with email: ' . $mailAccount->getEmail() . '</info>');

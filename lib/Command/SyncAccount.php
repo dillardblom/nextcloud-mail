@@ -46,9 +46,9 @@ final class SyncAccount extends Command {
 	 */
 	protected function configure() {
 		$this->setName('mail:account:sync');
-		$this->setDescription('Synchronize an IMAP account');
-		$this->addArgument(self::ARGUMENT_ACCOUNT_ID, InputArgument::REQUIRED);
-		$this->addOption(self::OPTION_FORCE, 'f', InputOption::VALUE_NONE);
+		$this->setDescription('Synchronize the folders and messages of an IMAP account');
+		$this->addArgument(self::ARGUMENT_ACCOUNT_ID, InputArgument::REQUIRED, 'Id of the account, see mail:account:list');
+		$this->addOption(self::OPTION_FORCE, 'f', InputOption::VALUE_NONE, 'Also refresh the folder list when it was synced less than two hours ago');
 	}
 
 	protected function execute(InputInterface $input, OutputInterface $output): int {

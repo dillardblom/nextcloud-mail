@@ -34,8 +34,8 @@ final class DeleteAccount extends Command {
 	 */
 	protected function configure() {
 		$this->setName('mail:account:delete');
-		$this->setDescription('Delete an IMAP account');
-		$this->addArgument(self::ARGUMENT_ACCOUNT_ID, InputArgument::REQUIRED);
+		$this->setDescription('Delete a mail account');
+		$this->addArgument(self::ARGUMENT_ACCOUNT_ID, InputArgument::REQUIRED, 'Id of the account, see mail:account:list');
 	}
 
 	protected function execute(InputInterface $input, OutputInterface $output): int {

@@ -35,7 +35,7 @@ final class TestAccount extends Command {
 		$this->setName('mail:account:test');
 		$this->setAliases(['mail:account:diagnose']);
 		$this->setDescription('Test the connection for a mail account (IMAP or JMAP)');
-		$this->addArgument(self::ARGUMENT_ACCOUNT_ID, InputArgument::REQUIRED, 'The ID of the mail account');
+		$this->addArgument(self::ARGUMENT_ACCOUNT_ID, InputArgument::REQUIRED, 'Id of the account, see mail:account:list');
 	}
 
 	protected function execute(InputInterface $input, OutputInterface $output): int {

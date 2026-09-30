@@ -29,7 +29,7 @@ final class CreateTagMigrationJobEntry extends Command {
 
 	protected function configure(): void {
 		$this->setName('mail:tags:migration-jobs');
-		$this->setDescription('Creates a background job entry in the cron table for every user to migrate important labels to IMAP');
+		$this->setDescription('Create a background job entry in the cron table for every user to migrate important labels to IMAP');
 	}
 
 	protected function execute(InputInterface $input, OutputInterface $output): int {

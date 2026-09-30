@@ -34,9 +34,9 @@ final class ExportAccount extends Command {
 	 */
 	protected function configure() {
 		$this->setName('mail:account:export');
-		$this->setDescription('Exports a user\'s mail account(s)');
-		$this->addArgument(self::ARGUMENT_USER_ID, InputArgument::REQUIRED);
-		$this->addOption(self::ARGUMENT_OUTPUT_FORMAT, '', InputOption::VALUE_OPTIONAL);
+		$this->setDescription('Export the mail accounts of a user');
+		$this->addArgument(self::ARGUMENT_USER_ID, InputArgument::REQUIRED, 'Id of the Nextcloud user');
+		$this->addOption(self::ARGUMENT_OUTPUT_FORMAT, '', InputOption::VALUE_OPTIONAL, 'Output format: json or json_pretty (default: plain text)');
 	}
 
 	protected function execute(InputInterface $input, OutputInterface $output): int {

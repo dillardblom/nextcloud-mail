@@ -17,6 +17,7 @@ use OCP\Security\ICrypto;
 use PHPUnit\Framework\MockObject\MockObject;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Console\Tester\CommandTester;
 
 class UpdateImapAccountTest extends TestCase {
 	private MailAccountMapper&MockObject $mapper;
@@ -131,5 +132,27 @@ class UpdateImapAccountTest extends TestCase {
 			}));
 
 		self::assertSame(0, $this->command->run($input, $output));
+	}
+
+	public function testRejectsInvalidValues(): void {
+		$mailAccount = new MailAccount();
+		$mailAccount->setProtocol(MailAccount::PROTOCOL_IMAP);
+		$this->mapper->method('findById')
+			->with(42)
+			->willReturn($mailAccount);
+		$this->mapper->expects($this->never())
+			->method('save');
+
+		$tester = new CommandTester($this->command);
+		$exitCode = $tester->execute([
+			'account-id' => '42',
+			'--imap-port' => 'abc',
+			'--imap-ssl-mode' => 'starttls',
+		]);
+
+		self::assertSame(2, $exitCode);
+		$display = $tester->getDisplay();
+		self::assertStringContainsString('Invalid imap-port "abc". Use a number between 1 and 65535', $display);
+		self::assertStringContainsString('Invalid imap-ssl-mode "starttls". Use one of: none, ssl, tls', $display);
 	}
 }

@@ -41,7 +41,7 @@ final class CreateJmapAccount extends Command {
 
 	protected function configure(): void {
 		$this->setName('mail:account:create-jmap');
-		$this->setDescription('creates a JMAP mail account');
+		$this->setDescription('Create a JMAP mail account for a user');
 		$this->addArgument(self::ARGUMENT_USER_ID, InputArgument::REQUIRED, 'user to add the account for');
 		$this->addArgument(self::ARGUMENT_NAME, InputArgument::REQUIRED, 'display name of the account');
 		$this->addArgument(self::ARGUMENT_EMAIL, InputArgument::REQUIRED, 'email address');
