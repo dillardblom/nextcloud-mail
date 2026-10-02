@@ -13,19 +13,6 @@
 				'navigation-account-header--folded': account.folded,
 				'navigation-account-header--active': account.folded && isInboxActive,
 			}">
-			<NcButton
-				v-if="!isDisabled"
-				class="navigation-account-header__toggle"
-				variant="tertiary"
-				:aria-label="foldLabel"
-				:title="foldLabel"
-				:aria-expanded="account.folded ? 'false' : 'true'"
-				:disabled="savingFolded"
-				@click="toggleFolded">
-				<template #icon>
-					<IconChevronRight class="navigation-account-header__chevron" :size="20" />
-				</template>
-			</NcButton>
 			<h2 :id="id" class="navigation-account-header__name">
 				<router-link
 					v-if="inboxRoute"
@@ -45,6 +32,19 @@
 				</NcCounterBubble>
 				<span class="hidden-visually">{{ unreadLabel }}</span>
 			</template>
+			<NcButton
+				v-if="!isDisabled"
+				class="navigation-account-header__toggle"
+				variant="tertiary"
+				:aria-label="foldLabel"
+				:title="foldLabel"
+				:aria-expanded="account.folded ? 'false' : 'true'"
+				:disabled="savingFolded"
+				@click="toggleFolded">
+				<template #icon>
+					<IconChevronRight class="navigation-account-header__chevron" :size="20" />
+				</template>
+			</NcButton>
 			<NcActions class="navigation-account-header__actions" @update:open="onMenuToggle">
 				<template v-if="isDisabled">
 					<NcActionText :name="t('mail', 'Provisioned account is disabled')">
