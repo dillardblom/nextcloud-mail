@@ -32,19 +32,6 @@
 				</NcCounterBubble>
 				<span class="hidden-visually">{{ unreadLabel }}</span>
 			</template>
-			<NcButton
-				v-if="!isDisabled"
-				class="navigation-account-header__toggle"
-				variant="tertiary"
-				:aria-label="foldLabel"
-				:title="foldLabel"
-				:aria-expanded="account.folded ? 'false' : 'true'"
-				:disabled="savingFolded"
-				@click="toggleFolded">
-				<template #icon>
-					<IconChevronRight class="navigation-account-header__chevron" :size="20" />
-				</template>
-			</NcButton>
 			<NcActions class="navigation-account-header__actions" @update:open="onMenuToggle">
 				<template v-if="isDisabled">
 					<NcActionText :name="t('mail', 'Provisioned account is disabled')">
@@ -128,6 +115,19 @@
 					</NcActionButton>
 				</template>
 			</NcActions>
+			<NcButton
+				v-if="!isDisabled"
+				class="navigation-account-header__toggle"
+				variant="tertiary"
+				:aria-label="foldLabel"
+				:title="foldLabel"
+				:aria-expanded="account.folded ? 'false' : 'true'"
+				:disabled="savingFolded"
+				@click="toggleFolded">
+				<template #icon>
+					<IconChevronRight class="navigation-account-header__chevron" :size="20" />
+				</template>
+			</NcButton>
 		</li>
 		<DelegationModal v-if="showDelegationModal" :account="account" @close="showDelegationModal = false" />
 	</Fragment>
