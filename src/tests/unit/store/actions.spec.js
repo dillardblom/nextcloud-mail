@@ -250,6 +250,7 @@ describe('Vuex store actions', () => {
 
 		expect(store.accountsUnmapped[13].unifiedLabel).toBe('')
 		expect(store.accountsUnmapped[13].unifiedLabelColor).toBe('')
+		expect(store.accountsUnmapped[13].unifiedLabelAsName).toBe(false)
 	})
 
 	it('sets and persists the unified label of an account', async () => {
@@ -260,22 +261,37 @@ describe('Vuex store actions', () => {
 
 		expect(store.accountsUnmapped[13].unifiedLabel).toBe('Work')
 		expect(store.accountsUnmapped[13].unifiedLabelColor).toBe('#0082c9')
+		expect(store.accountsUnmapped[13].unifiedLabelAsName).toBe(false)
 		expect(PreferenceService.savePreference).toHaveBeenCalledTimes(1)
 		expect(PreferenceService.savePreference).toHaveBeenCalledWith(
 			'account-settings',
-			JSON.stringify([{ accountId: 13, unifiedLabel: 'Work', unifiedLabelColor: '#0082c9' }]),
+			JSON.stringify([{ accountId: 13, unifiedLabel: 'Work', unifiedLabelColor: '#0082c9', unifiedLabelAsName: false }]),
+		)
+	})
+
+	it('sets and persists the label as the mailbox name', async () => {
+		store.addAccountMutation({ id: 13, personalNamespace: '', mailboxes: [] })
+		PreferenceService.savePreference.mockResolvedValue(undefined)
+
+		await store.setAccountUnifiedLabel({ accountId: 13, label: 'Work', color: '#0082c9', asName: true })
+
+		expect(store.accountsUnmapped[13].unifiedLabelAsName).toBe(true)
+		expect(PreferenceService.savePreference).toHaveBeenCalledWith(
+			'account-settings',
+			JSON.stringify([{ accountId: 13, unifiedLabel: 'Work', unifiedLabelColor: '#0082c9', unifiedLabelAsName: true }]),
 		)
 	})
 
 	it('restores the unified label when saving it fails', async () => {
-		store.addAccountMutation({ id: 13, personalNamespace: '', mailboxes: [], unifiedLabel: 'Home', unifiedLabelColor: '#ff0000' })
+		store.addAccountMutation({ id: 13, personalNamespace: '', mailboxes: [], unifiedLabel: 'Home', unifiedLabelColor: '#ff0000', unifiedLabelAsName: true })
 		PreferenceService.savePreference.mockRejectedValue(new Error('network down'))
 
 		await expect(store.setAccountUnifiedLabel({ accountId: 13, label: 'Work', color: '#0082c9' })).rejects.toThrow('network down')
 
 		expect(store.accountsUnmapped[13].unifiedLabel).toBe('Home')
 		expect(store.accountsUnmapped[13].unifiedLabelColor).toBe('#ff0000')
-		expect(store.allAccountSettings).toContainEqual({ accountId: 13, unifiedLabel: 'Home', unifiedLabelColor: '#ff0000' })
+		expect(store.accountsUnmapped[13].unifiedLabelAsName).toBe(true)
+		expect(store.allAccountSettings).toContainEqual({ accountId: 13, unifiedLabel: 'Home', unifiedLabelColor: '#ff0000', unifiedLabelAsName: true })
 	})
 
 	it('creates a sub-mailbox', async () => {

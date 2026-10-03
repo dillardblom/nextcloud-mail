@@ -43,12 +43,19 @@
 				{{ t('mail', 'Remove label') }}
 			</NcButton>
 		</div>
+		<NcCheckboxRadioSwitch
+			:model-value="asName"
+			:disabled="saving || !label.trim()"
+			type="switch"
+			@update:model-value="onAsNameChange">
+			{{ t('mail', 'Use label as mailbox name') }}
+		</NcCheckboxRadioSwitch>
 	</div>
 </template>
 
 <script>
 import { showError } from '@nextcloud/dialogs'
-import { NcButton, NcColorPicker, NcTextField } from '@nextcloud/vue'
+import { NcButton, NcCheckboxRadioSwitch, NcColorPicker, NcTextField } from '@nextcloud/vue'
 import { mapStores } from 'pinia'
 import logger from '../logger.js'
 import { UNIFIED_LABEL_MAX_LENGTH } from '../store/constants.js'
@@ -58,6 +65,7 @@ export default {
 	name: 'AccountLabelSettings',
 	components: {
 		NcButton,
+		NcCheckboxRadioSwitch,
 		NcColorPicker,
 		NcTextField,
 	},
@@ -73,6 +81,7 @@ export default {
 		return {
 			label: this.account.unifiedLabel,
 			color: this.account.unifiedLabelColor,
+			asName: this.account.unifiedLabelAsName,
 			maxLength: UNIFIED_LABEL_MAX_LENGTH,
 			saving: false,
 		}
@@ -91,12 +100,19 @@ export default {
 		async clear() {
 			this.label = ''
 			this.color = ''
+			this.asName = false
+			await this.save()
+		},
+
+		async onAsNameChange(asName) {
+			this.asName = asName
 			await this.save()
 		},
 
 		async save() {
 			const label = this.label.trim()
-			if (label === this.account.unifiedLabel && this.color === this.account.unifiedLabelColor) {
+			const asName = this.asName && !!label
+			if (label === this.account.unifiedLabel && this.color === this.account.unifiedLabelColor && asName === this.account.unifiedLabelAsName) {
 				return
 			}
 
@@ -106,13 +122,16 @@ export default {
 					accountId: this.account.id,
 					label,
 					color: this.color,
+					asName,
 				})
 				this.label = label
+				this.asName = asName
 			} catch (error) {
 				logger.error('could not save the account label', { error })
 				showError(t('mail', 'Could not save the label'))
 				this.label = this.account.unifiedLabel
 				this.color = this.account.unifiedLabelColor
+				this.asName = this.account.unifiedLabelAsName
 			} finally {
 				this.saving = false
 			}
