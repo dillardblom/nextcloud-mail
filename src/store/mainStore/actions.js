@@ -411,20 +411,24 @@ export default function mainStoreActions() {
 			accountId,
 			label,
 			color,
+			asName = false,
 		}) {
 			const account = this.accountsUnmapped[accountId]
 			const previous = {
 				label: account.unifiedLabel,
 				color: account.unifiedLabelColor,
+				asName: account.unifiedLabelAsName,
 			}
-			const apply = ({ label, color }) => {
+			const apply = ({ label, color, asName }) => {
 				account.unifiedLabel = label
 				account.unifiedLabelColor = color
+				account.unifiedLabelAsName = asName
 				this.setAccountSettingMutation({ accountId, key: 'unifiedLabel', value: label })
 				this.setAccountSettingMutation({ accountId, key: 'unifiedLabelColor', value: color })
+				this.setAccountSettingMutation({ accountId, key: 'unifiedLabelAsName', value: asName })
 			}
 
-			apply({ label, color })
+			apply({ label, color, asName })
 			try {
 				await this.setAccountSetting({ accountId, key: 'unifiedLabelColor', value: color })
 			} catch (error) {
@@ -1980,6 +1984,7 @@ export default function mainStoreActions() {
 			account.folded = account.folded ?? false
 			account.unifiedLabel = account.unifiedLabel ?? ''
 			account.unifiedLabelColor = account.unifiedLabelColor ?? ''
+			account.unifiedLabelAsName = account.unifiedLabelAsName ?? false
 
 			Vue.set(this.accountsUnmapped, account.id, account)
 

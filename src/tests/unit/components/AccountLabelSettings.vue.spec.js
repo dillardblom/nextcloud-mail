@@ -35,10 +35,11 @@ describe('AccountLabelSettings', () => {
 	beforeEach(() => {
 		setActivePinia(createTestingPinia())
 		store = useMainStore()
-		account = { id: 13, unifiedLabel: '', unifiedLabelColor: '' }
-		store.setAccountUnifiedLabel = vi.fn(async ({ label, color }) => {
+		account = { id: 13, unifiedLabel: '', unifiedLabelColor: '', unifiedLabelAsName: false }
+		store.setAccountUnifiedLabel = vi.fn(async ({ label, color, asName = false }) => {
 			account.unifiedLabel = label
 			account.unifiedLabelColor = color
+			account.unifiedLabelAsName = asName
 		})
 	})
 
@@ -53,8 +54,29 @@ describe('AccountLabelSettings', () => {
 
 		await view.vm.save()
 
-		expect(store.setAccountUnifiedLabel).toHaveBeenCalledWith({ accountId: 13, label: 'Work', color: '#0082c9' })
+		expect(store.setAccountUnifiedLabel).toHaveBeenCalledWith({ accountId: 13, label: 'Work', color: '#0082c9', asName: false })
 		expect(view.vm.label).toBe('Work')
+	})
+
+	it('enables using the label as the mailbox name', async () => {
+		const view = mountSettings()
+		view.vm.label = 'Work'
+
+		await view.vm.onAsNameChange(true)
+
+		expect(store.setAccountUnifiedLabel).toHaveBeenCalledWith({ accountId: 13, label: 'Work', color: '', asName: true })
+		expect(view.vm.asName).toBe(true)
+	})
+
+	it('never turns on the mailbox name switch without a label', async () => {
+		account.unifiedLabel = 'Work'
+		account.unifiedLabelAsName = false
+		const view = mountSettings()
+		view.vm.label = '  '
+
+		await view.vm.onAsNameChange(true)
+
+		expect(store.setAccountUnifiedLabel).toHaveBeenCalledWith({ accountId: 13, label: '', color: '', asName: false })
 	})
 
 	it('does not save when nothing changed', async () => {
@@ -71,17 +93,18 @@ describe('AccountLabelSettings', () => {
 
 		await view.vm.onColorSubmit('#ff0000')
 
-		expect(store.setAccountUnifiedLabel).toHaveBeenCalledWith({ accountId: 13, label: '', color: '#ff0000' })
+		expect(store.setAccountUnifiedLabel).toHaveBeenCalledWith({ accountId: 13, label: '', color: '#ff0000', asName: false })
 	})
 
-	it('removes the label and the color', async () => {
+	it('removes the label, the color and the mailbox-name switch', async () => {
 		account.unifiedLabel = 'Work'
 		account.unifiedLabelColor = '#0082c9'
+		account.unifiedLabelAsName = true
 		const view = mountSettings()
 
 		await view.vm.clear()
 
-		expect(store.setAccountUnifiedLabel).toHaveBeenCalledWith({ accountId: 13, label: '', color: '' })
+		expect(store.setAccountUnifiedLabel).toHaveBeenCalledWith({ accountId: 13, label: '', color: '', asName: false })
 	})
 
 	it('shows an error and restores the saved values when saving fails', async () => {
