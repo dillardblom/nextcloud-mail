@@ -188,7 +188,7 @@ class PageControllerTest extends TestCase {
 		$account1 = $this->createMock(Account::class);
 		$account2 = $this->createMock(Account::class);
 		$mailbox = $this->createStub(Mailbox::class);
-		$this->preferences->expects($this->exactly(15))
+		$this->preferences->expects($this->exactly(16))
 			->method('getPreference')
 			->willReturnMap([
 				[$this->userId, 'account-settings', '[]', json_encode([])],
