@@ -137,6 +137,7 @@
 						:request-mdn="composerData.requestMdn"
 						:is-ai-generated="composerData.isAiGenerated"
 						:accounts="accounts"
+						:has-user-edits="userEdited"
 						@update:from-account="patchComposerData({ accountId: $event })"
 						@update:from-alias="patchComposerData({ aliasId: $event })"
 						@update:to="patchComposerData({ to: $event })"
@@ -150,6 +151,7 @@
 						@update:smime-encrypt="patchComposerData({ smimeSign: $event })"
 						@update:request-mdn="patchComposerData({ requestMdn: $event })"
 						@update:is-ai-generated="patchComposerData({ isAiGenerated: $event })"
+						@user-edit="userEdited = true"
 						@draft="onDraft"
 						@discard-draft="discardDraft"
 						@upload-attachment="onAttachmentUploading"
@@ -230,6 +232,8 @@ export default {
 			modalFirstOpen: true,
 			cookedComposerData: undefined,
 			changed: false,
+			// Changes from filling in a reply or forward don't count until the user edits something
+			userEdited: false,
 			largerModal: false,
 			additionalTrapElements: [],
 			recipient: {
@@ -250,6 +254,11 @@ export default {
 	},
 
 	computed: {
+		/** Changed by the user, not only filled in for a reply or forward */
+		edited() {
+			return this.changed && this.userEdited
+		},
+
 		...mapStores(useOutboxStore, useMainStore),
 		...mapState(useMainStore, ['showMessageComposer']),
 		...mapActions(useMainStore, ['getPreference']),
@@ -343,7 +352,7 @@ export default {
 			this.modalFirstOpen = false
 
 			await this.mainStore.hideMessageComposerMutation()
-			if (!this.mainStore.composerMessageIsSaved && this.changed) {
+			if (!this.mainStore.composerMessageIsSaved && this.edited) {
 				await this.onDraft(this.cookedComposerData, { showToast: true })
 			}
 		},
@@ -654,7 +663,7 @@ export default {
 		},
 
 		onBeforeUnload(e) {
-			if (this.canSaveDraft && this.changed) {
+			if (this.canSaveDraft && this.edited) {
 				e.preventDefault()
 				e.returnValue = true
 				this.mainStore.showMessageComposerMutation()
@@ -668,11 +677,11 @@ export default {
 			await this.onMinimize()
 
 			// End the session only if all unsaved changes have been saved
-			if (this.canSaveDraft && ((this.changed && this.draftSaved) || !this.changed)) {
+			if (this.canSaveDraft && ((this.edited && this.draftSaved) || !this.edited)) {
 				logger.debug('Closing composer session due to close button click')
 				await this.mainStore.stopComposerSession({
 					restoreOriginalSendAt: true,
-					moveToImap: this.changed,
+					moveToImap: this.edited,
 					id: this.composerData.id,
 				})
 			}

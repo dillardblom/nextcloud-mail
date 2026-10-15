@@ -7,7 +7,9 @@
 		class="message-composer"
 		@dragover.prevent
 		@drop="onDrop"
-		@paste="onPaste">
+		@paste="onPaste"
+		@input.capture="markUserEdit"
+		@change.capture="markUserEdit">
 		<NcReferencePickerModal
 			v-if="isPickerAvailable && isPickerOpen"
 			id="reference-picker"
@@ -31,7 +33,7 @@
 					:clear-on-select="false"
 					:append-to-body="false"
 					:selectable="(option) => option.selectable"
-					@option:selected="onAliasChange">
+					@option:selected="markUserEdit(); onAliasChange($event)">
 					<template #option="option">
 						{{ formatAliases(option) }}
 					</template>
@@ -68,7 +70,8 @@
 					:create-option="createRecipientOption"
 					:clear-search-on-blur="() => clearOnBlur('to')"
 					@input="saveDraftDebounced"
-					@option:selecting="onNewToAddr"
+					@option:selecting="markUserEdit(); onNewToAddr($event)"
+					@option:deselected="markUserEdit"
 					@search:blur="onToFieldBlur"
 					@search="onAutocomplete($event, 'to')">
 					<template #search="{ events, attributes }">
@@ -150,7 +153,8 @@
 					:clearable="true"
 					:create-option="createRecipientOption"
 					@input="saveDraftDebounced"
-					@option:selecting="onNewCcAddr"
+					@option:selecting="markUserEdit(); onNewCcAddr($event)"
+					@option:deselected="markUserEdit"
 					@search:blur="onNewCcAddr"
 					@search="onAutocomplete($event, 'cc')">
 					<template #search="{ events, attributes }">
@@ -218,7 +222,8 @@
 					:clearable="true"
 					:create-option="createRecipientOption"
 					@input="saveDraftDebounced"
-					@option:selecting="onNewBccAddr"
+					@option:selecting="markUserEdit(); onNewBccAddr($event)"
+					@option:deselected="markUserEdit"
 					@search:blur="onNewBccAddr"
 					@search="onAutocomplete($event, 'bcc')">
 					<template #search="{ events, attributes }">
@@ -627,6 +632,12 @@ export default {
 	},
 
 	props: {
+		/** The user already edited this message (before the composer was re-rendered) */
+		hasUserEdits: {
+			type: Boolean,
+			default: false,
+		},
+
 		fromAccount: {
 			type: Number,
 			default: () => undefined,
@@ -786,6 +797,7 @@ export default {
 			attachments: this.attachmentsData,
 			noReply: this.to.some((to) => to.email?.startsWith('noreply@') || to.email?.startsWith('no-reply@')),
 			saveDraftDebounced: debounce(5 * 1000, this.saveDraft),
+			userEdited: this.hasUserEdits,
 			selectTo: this.to,
 			selectCc: this.cc,
 			selectBcc: this.bcc,
@@ -1339,7 +1351,23 @@ export default {
 			return data
 		},
 
+		/**
+		 * A reply or forward is filled in by code (recipients, subject, quote, signature), which
+		 * fires the same change events as typing. Only what the user does counts as an edit, so
+		 * opening and closing a reply does not leave a draft behind.
+		 */
+		markUserEdit() {
+			if (!this.userEdited) {
+				this.userEdited = true
+				this.$emit('user-edit')
+			}
+		},
+
 		saveDraft() {
+			if (!this.userEdited) {
+				logger.debug('No edits by the user yet, ignoring draft save')
+				return
+			}
 			const draftData = this.getMessageData()
 			if (draftData.subject === ''
 				&& draftData.body?.value === ''
@@ -1394,11 +1422,13 @@ export default {
 		},
 
 		onPicked(content) {
+			this.markUserEdit()
 			this.closePicker()
 			this.bus.emit('append-to-body-at-cursor', content)
 		},
 
 		onTextBlockInsert(content) {
+			this.markUserEdit()
 			this.isTextBlockPickerOpen = false
 			this.bus.emit('insert-text-block', content)
 		},
@@ -1434,6 +1464,7 @@ export default {
 		},
 
 		onChangeSendLater(value) {
+			this.markUserEdit()
 			this.sendAtVal = Number.parseInt(value, 10)
 		},
 
@@ -1481,11 +1512,13 @@ export default {
 		},
 
 		onAddLocalAttachment() {
+			this.markUserEdit()
 			this.bus.emit('on-add-local-attachment')
 			this.saveDraftDebounced()
 		},
 
 		onAddCloudAttachment() {
+			this.markUserEdit()
 			this.bus.emit('on-add-cloud-attachment')
 			this.saveDraftDebounced()
 		},
@@ -1842,6 +1875,7 @@ export default {
 				return
 			}
 
+			this.markUserEdit()
 			this.bus.emit('on-add-local-files', files)
 			this.saveDraftDebounced()
 		},
@@ -1863,6 +1897,7 @@ export default {
 				return
 			}
 
+			this.markUserEdit()
 			event.preventDefault()
 
 			this.bus.emit('on-add-local-files', files)
