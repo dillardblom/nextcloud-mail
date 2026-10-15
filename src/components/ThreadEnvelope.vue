@@ -162,7 +162,8 @@
 									:title="t('mail', 'Reply')"
 									:size="20" />
 							</template>
-							{{ t('mail', 'Reply') }}
+							<!-- Same names as the icons: in the collapsed menu (mobile) this one replied to all as "Reply" -->
+							{{ hasMultipleRecipients ? t('mail', 'Reply all') : t('mail', 'Reply') }}
 						</NcActionButton>
 						<NcActionButton
 							v-if="hasMultipleRecipients"
@@ -170,10 +171,10 @@
 							@click="onReply('', false, true)">
 							<template #icon>
 								<ReplyIcon
-									:title="t('mail', 'Reply to sender only')"
+									:title="t('mail', 'Reply')"
 									:size="20" />
 							</template>
-							{{ t('mail', 'Reply to sender only') }}
+							{{ t('mail', 'Reply') }}
 						</NcActionButton>
 						<NcActionButton
 							v-if="hasWriteAcl && (inlineMenuSize >= 2 || !moreActionsOpen)"
