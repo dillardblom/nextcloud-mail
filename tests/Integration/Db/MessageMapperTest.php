@@ -18,6 +18,7 @@ use OCA\Mail\Db\MailAccount;
 use OCA\Mail\Db\Mailbox;
 use OCA\Mail\Db\Message;
 use OCA\Mail\Db\MessageMapper;
+use OCA\Mail\Db\Recipient;
 use OCA\Mail\Db\TagMapper;
 use OCA\Mail\Service\Search\SearchQuery;
 use OCA\Mail\Support\PerformanceLogger;
