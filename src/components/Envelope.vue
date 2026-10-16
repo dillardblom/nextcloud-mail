@@ -269,6 +269,26 @@
 					}}
 				</NcActionText>
 				<NcActionSeparator />
+				<template v-if="withReply && !draft">
+					<NcActionButton
+						:close-after-click="true"
+						@click="onReply(false)">
+						<template #icon>
+							<ReplyAllIcon v-if="hasMultipleRecipients" :size="20" />
+							<ReplyIcon v-else :size="20" />
+						</template>
+						{{ hasMultipleRecipients ? t('mail', 'Reply all') : t('mail', 'Reply') }}
+					</NcActionButton>
+					<NcActionButton
+						v-if="hasMultipleRecipients"
+						:close-after-click="true"
+						@click="onReply(true)">
+						<template #icon>
+							<ReplyIcon :size="20" />
+						</template>
+						{{ t('mail', 'Reply') }}
+					</NcActionButton>
+				</template>
 				<NcActionButton :is-menu="true" @click="showQuickActionsMenu">
 					<template #icon>
 						<IconEmailFast :size="20" />
@@ -580,6 +600,8 @@ import ImportantOutlineIcon from 'vue-material-design-icons/LabelVariantOutline.
 import OpenInNewIcon from 'vue-material-design-icons/OpenInNew.vue'
 import IconAttachment from 'vue-material-design-icons/Paperclip.vue'
 import PlusIcon from 'vue-material-design-icons/Plus.vue'
+import ReplyIcon from 'vue-material-design-icons/Reply.vue'
+import ReplyAllIcon from 'vue-material-design-icons/ReplyAll.vue'
 import Reply from 'vue-material-design-icons/ReplyOutline.vue'
 import Star from 'vue-material-design-icons/Star.vue'
 import StarOutline from 'vue-material-design-icons/StarOutline.vue'
@@ -648,6 +670,8 @@ export default {
 		IconAttachment,
 		IconBullet,
 		Reply,
+		ReplyAllIcon,
+		ReplyIcon,
 		NcActionLink,
 		NcActionText,
 		DownloadIcon,
@@ -763,7 +787,7 @@ export default {
 					accountId: this.data.accountId,
 				})
 			}
-			const recipients = buildReplyRecipients(this.envelope, {
+			const recipients = buildReplyRecipients(this.data, {
 				label: this.account.name,
 				email: this.account.emailAddress,
 			})
@@ -1055,6 +1079,20 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Reply from the list, without opening the message first
+		 *
+		 * @param {boolean} onlySender reply to the sender only instead of to all
+		 */
+		onReply(onlySender) {
+			this.mainStore.startComposerSession({
+				reply: {
+					mode: onlySender ? 'reply' : 'replyAll',
+					data: this.data,
+				},
+			})
+		},
+
 		translateTagDisplayName,
 		setSelected(value) {
 			if (this.selected !== value) {
