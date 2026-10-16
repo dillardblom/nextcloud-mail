@@ -149,6 +149,7 @@
 						<!-- TODO: display information about signer and/or CA certificate -->
 					</NcActions>
 					<NcActions :inline="inlineMenuSize">
+						<!-- Named like their icons: in the collapsed menu (mobile) the reply-all action was called "Reply" -->
 						<NcActionButton
 							:close-after-click="true"
 							@click="onReply('', false)">
@@ -162,7 +163,6 @@
 									:title="t('mail', 'Reply')"
 									:size="20" />
 							</template>
-							<!-- Same names as the icons: in the collapsed menu (mobile) this one replied to all as "Reply" -->
 							{{ hasMultipleRecipients ? t('mail', 'Reply all') : t('mail', 'Reply') }}
 						</NcActionButton>
 						<NcActionButton
