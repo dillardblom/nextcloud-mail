@@ -564,4 +564,44 @@ class MessageMapperTest extends TestCase {
 		$this->assertSame('Café €1200', $row['subject']);
 		$this->assertSame('Noël', $row['label']);
 	}
+
+	public function testCountThreadMessagesCountsPerThreadAcrossTheAccountsMailboxes(): void {
+		$mailboxMapper = \OCP\Server::get(\OCA\Mail\Db\MailboxMapper::class);
+		$mailboxIds = [];
+		foreach ([['INBOX', 901], ['Sent', 901], ['INBOX', 902]] as [$name, $accountId]) {
+			$mailbox = new Mailbox();
+			$mailbox->setName($name);
+			$mailbox->setAccountId($accountId);
+			$mailbox->setAttributes('[]');
+			$mailbox->setDelimiter('/');
+			$mailbox->setMessages(0);
+			$mailbox->setUnseen(0);
+			$mailbox->setSelectable(true);
+			$mailbox->setNameHash(md5($name . $accountId));
+			$mailboxIds[] = $mailboxMapper->insert($mailbox)->getId();
+		}
+		// Thread a: two in the inbox and the reply in Sent; thread b: one message; thread a also
+		// exists in another account, which must not be counted
+		foreach ([[0, '<a@x>'], [0, '<a@x>'], [1, '<a@x>'], [0, '<b@x>'], [2, '<a@x>']] as $i => [$box, $root]) {
+			$qb = $this->db->getQueryBuilder();
+			$qb->insert($this->mapper->getTableName())
+				->values([
+					'uid' => $qb->createNamedParameter($i + 1, IQueryBuilder::PARAM_INT),
+					'message_id' => $qb->createNamedParameter("<m$i@x>"),
+					'mailbox_id' => $qb->createNamedParameter($mailboxIds[$box], IQueryBuilder::PARAM_INT),
+					'subject' => $qb->createNamedParameter('TEST'),
+					'sent_at' => $qb->createNamedParameter($i, IQueryBuilder::PARAM_INT),
+					'thread_root_id' => $qb->createNamedParameter($root),
+				])
+				->executeStatement();
+		}
+		$mailAccount = new MailAccount();
+		$mailAccount->setId(901);
+		$mailAccount->setUserId('user');
+
+		$counts = $this->mapper->countThreadMessages(new Account($mailAccount), ['<a@x>', '<b@x>', '<a@x>']);
+		ksort($counts);
+
+		$this->assertSame(['<a@x>' => 3, '<b@x>' => 1], $counts);
+	}
 }

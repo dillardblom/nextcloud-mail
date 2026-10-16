@@ -125,6 +125,11 @@
 				<span class="envelope__recipient-text">
 					{{ addresses }}
 				</span>
+				<NcCounterBubble
+					v-if="data.threadSize > 1"
+					class="envelope__thread-size"
+					:count="data.threadSize"
+					:title="n('mail', '{count} message in this conversation', '{count} messages in this conversation', data.threadSize, { count: data.threadSize })" />
 				<span
 					v-if="accountLabel"
 					class="envelope__account-label"
@@ -576,6 +581,7 @@ import {
 	NcActionText,
 	NcAssistantIcon,
 	NcCheckboxRadioSwitch,
+	NcCounterBubble,
 } from '@nextcloud/vue'
 import escapeHtml from 'escape-html'
 import { mapState, mapStores } from 'pinia'
@@ -658,6 +664,7 @@ export default {
 		JunkIcon,
 		NcActionButton,
 		NcCheckboxRadioSwitch,
+		NcCounterBubble,
 		MoveModal,
 		OpenInNewIcon,
 		PlusIcon,
@@ -1904,6 +1911,12 @@ export default {
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
+}
+
+// Number of messages in the thread, right after the sender
+.envelope__thread-size {
+	flex: 0 0 auto;
+	margin-inline-start: 6px;
 }
 
 // Same look as the tags of a message

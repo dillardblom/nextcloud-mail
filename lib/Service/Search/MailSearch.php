@@ -100,7 +100,7 @@ class MailSearch implements IMailSearch {
 			$query->addFlag(Flag::not(Flag::DELETED));
 		}
 
-		return $this->previewEnhancer->process(
+		$messages = $this->previewEnhancer->process(
 			$account,
 			$mailbox,
 			$this->messageMapper->findByIds($account->getUserId(),
@@ -110,6 +110,15 @@ class MailSearch implements IMailSearch {
 			true,
 			$userId
 		);
+		if ($query->getThreaded()) {
+			// The threaded list shows one message per thread: say how many it stands for
+			$counts = $this->messageMapper->countThreadMessages($account, array_filter(array_map(
+				static fn (Message $message) => $message->getThreadRootId(), $messages)));
+			foreach ($messages as $message) {
+				$message->setThreadSize($counts[$message->getThreadRootId() ?? ''] ?? 1);
+			}
+		}
+		return $messages;
 	}
 
 	/**

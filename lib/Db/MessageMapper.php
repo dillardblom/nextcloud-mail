@@ -774,6 +774,34 @@ class MessageMapper extends QBMapper {
 	}
 
 	/**
+	 * Number of messages per thread in the account (all its mailboxes, like findThread)
+	 *
+	 * @param string[] $threadRootIds
+	 * @return array<string, int> thread root id => number of messages
+	 */
+	public function countThreadMessages(Account $account, array $threadRootIds): array {
+		$counts = [];
+		foreach (array_chunk(array_values(array_unique($threadRootIds)), 1000) as $chunk) {
+			$qb = $this->db->getQueryBuilder();
+			$qb->select('messages.thread_root_id')
+				->selectAlias($qb->func()->count('messages.id'), 'cnt')
+				->from($this->getTableName(), 'messages')
+				->join('messages', 'mail_mailboxes', 'mailboxes', $qb->expr()->eq('messages.mailbox_id', 'mailboxes.id', IQueryBuilder::PARAM_INT))
+				->where(
+					$qb->expr()->eq('mailboxes.account_id', $qb->createNamedParameter($account->getId(), IQueryBuilder::PARAM_INT)),
+					$qb->expr()->in('messages.thread_root_id', $qb->createNamedParameter($chunk, IQueryBuilder::PARAM_STR_ARRAY), IQueryBuilder::PARAM_STR_ARRAY)
+				)
+				->groupBy('messages.thread_root_id');
+			$result = $qb->executeQuery();
+			while (($row = $result->fetch()) !== false) {
+				$counts[(string)$row['thread_root_id']] = (int)$row['cnt'];
+			}
+			$result->closeCursor();
+		}
+		return $counts;
+	}
+
+	/**
 	 * @param Account $account
 	 * @param string $threadRootId
 	 *

@@ -126,6 +126,9 @@ class Message extends Entity implements JsonSerializable {
 	 */
 	protected $encrypted;
 
+	/** Messages in this message's thread in the account; only set for the threaded list */
+	private ?int $threadSize = null;
+
 	/** @var AddressList */
 	private $from;
 
@@ -254,6 +257,14 @@ class Message extends Entity implements JsonSerializable {
 		$this->tags = $tags;
 	}
 
+	public function getThreadSize(): ?int {
+		return $this->threadSize;
+	}
+
+	public function setThreadSize(?int $threadSize): void {
+		$this->threadSize = $threadSize;
+	}
+
 	/**
 	 * @return AddressList
 	 */
@@ -371,6 +382,7 @@ class Message extends Entity implements JsonSerializable {
 			'inReplyTo' => $this->getInReplyTo(),
 			'references' => empty($this->getReferences()) ? null: json_decode($this->getReferences(), true),
 			'threadRootId' => $this->getThreadRootId(),
+			'threadSize' => $this->threadSize,
 			'imipMessage' => $this->isImipMessage(),
 			'previewText' => $this->getPreviewText(),
 			'summary' => $this->getSummary(),
