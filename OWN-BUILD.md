@@ -26,13 +26,14 @@ Numbers in the last column refer to the user's list `Nextcloud/Nextcloud-mail - 
 | Reply actions named after what they do ("Reply all" / "Reply") | `fix/no-draft-without-edits` | not submitted | 11 |
 | Reply from the message list again | `feat/list-reply` | not submitted | 16 |
 | Type to find an account or alias in the From field | `feat/searchable-from` | not submitted | 8 |
+| Convert non-UTF-8 subjects and recipients before insert | `fix/utf8-recipient-labels` | PR #13782, open | – |
+| `mail:account:list` and better account commands | `feat/account-commands-help` (local only) | not submitted | – |
 
 ## Not in this build
 
-| Change | Branch | Upstream |
-|---|---|---|
-| Convert non-UTF-8 subjects and recipients before insert | `fix/utf8-recipient-labels` | PR #13782, open |
-| `mail:account:list` and better account commands | `feat/account-commands-help` (local only) | not submitted |
+Nothing. The last two rows above were in 5.12.2-db, got lost when the build was rebuilt on 5.12.4
+and were brought back on 2026-10-16. Check this table against `git log v5.X.Y..vX.Y.Z-db` after
+every rebuild on a new upstream version.
 
 ## Next base
 
