@@ -27,7 +27,8 @@
 					:options="aliases"
 					label="name"
 					:get-option-key="(option) => option.selectId"
-					:searchable="false"
+					:searchable="true"
+					:filter-by="filterAlias"
 					:placeholder="t('mail', 'Select account')"
 					:aria-label-combobox="t('mail', 'Select account')"
 					:clear-on-select="false"
@@ -1696,6 +1697,19 @@ export default {
 		 * @param {object} alias the alias to format
 		 * @return {string}
 		 */
+		/**
+		 * Type to find an account or alias: every word must occur in the name or the address
+		 *
+		 * @param {object} alias The account or alias option
+		 * @param {string} label The option label (unused, the name and address are matched)
+		 * @param {string} search What the user typed
+		 * @return {boolean}
+		 */
+		filterAlias(alias, label, search) {
+			const text = this.formatAliases(alias).toLocaleLowerCase()
+			return search.toLocaleLowerCase().split(/\s+/).filter(Boolean).every((word) => text.includes(word))
+		},
+
 		formatAliases(alias) {
 			if (!alias.name) {
 				return alias.emailAddress
