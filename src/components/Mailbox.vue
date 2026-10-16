@@ -19,21 +19,19 @@
 			:slow-hint="t('mail', 'Indexing your messages. This can take a bit longer for larger folders.')" />
 		<EmptyMailboxSection v-else-if="isPriorityInbox && !hasMessages" key="empty" />
 		<EmptyMailbox v-else-if="!hasMessages" key="empty" />
-		<template v-else-if="hasGroupedEnvelopes && !isPriorityInbox">
-			<div v-for="[label, group] in groupEnvelopes" :key="label">
-				<SectionTitle class="section-title" :name="getLabelForGroup(label)" />
-				<EnvelopeList
-					:account="account"
-					:mailbox="mailbox"
-					:search-query="searchQuery"
-					:envelopes="group"
-					:loading-more="false"
-					:load-more-button="false"
-					:skip-transition="skipListTransition"
-					:date-grouped="true"
-					@delete="onDelete" />
-			</div>
-		</template>
+		<!-- One list for all date groups, so a selection and its actions span the groups -->
+		<EnvelopeList
+			v-else-if="hasGroupedEnvelopes && !isPriorityInbox"
+			:account="account"
+			:mailbox="mailbox"
+			:search-query="searchQuery"
+			:envelopes="groupedEnvelopesFlat"
+			:group-titles="groupTitles"
+			:loading-more="false"
+			:load-more-button="false"
+			:skip-transition="skipListTransition"
+			:date-grouped="true"
+			@delete="onDelete" />
 		<EnvelopeList
 			v-else
 			:account="account"
@@ -59,7 +57,6 @@ import EnvelopeList from './EnvelopeList.vue'
 import Error from './Error.vue'
 import Loading from './Loading.vue'
 import LoadingSkeleton from './LoadingSkeleton.vue'
-import SectionTitle from './SectionTitle.vue'
 import MailboxLockedError from '../errors/MailboxLockedError.js'
 import MailboxNotCachedError from '../errors/MailboxNotCachedError.js'
 import { matchError } from '../errors/match.js'
@@ -79,7 +76,6 @@ export default {
 		Error,
 		Loading,
 		LoadingSkeleton,
-		SectionTitle,
 	},
 
 	props: {
@@ -162,6 +158,17 @@ export default {
 				return this.envelopes.slice(0, this.initialPageSize)
 			}
 			return this.envelopes
+		},
+
+		groupedEnvelopesFlat() {
+			return this.groupEnvelopes.flatMap(([, group]) => group)
+		},
+
+		/** Title of each date group, keyed by the id of its first message */
+		groupTitles() {
+			return Object.fromEntries(this.groupEnvelopes
+				.filter(([, group]) => group.length > 0)
+				.map(([label, group]) => [group[0].databaseId, this.getLabelForGroup(label)]))
 		},
 
 		hasGroupedEnvelopes() {

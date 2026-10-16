@@ -56,6 +56,13 @@
 					</NcButton>
 
 					<NcButton
+						v-if="selection.length < sortedEnvelops.length"
+						variant="tertiary"
+						:title="n('mail', 'Select all {number}', 'Select all {number}', sortedEnvelops.length, { number: sortedEnvelops.length })"
+						@click.prevent="selectAll">
+						<IconSelectAll :size="20" />
+					</NcButton>
+					<NcButton
 						variant="tertiary"
 						:title="n('mail', 'Unselect {number}', 'Unselect {number}', selection.length, { number: selection.length })"
 						:close-after-click="true"
@@ -117,21 +124,27 @@
 		</transition>
 
 		<transition-group :name="listTransitionName">
-			<Envelope
-				v-for="(env, index) in sortedEnvelops"
-				:key="env.databaseId"
-				:data="env"
-				:mailbox="mailbox"
-				:selected="selection.includes(env.databaseId)"
-				:select-mode="selectMode"
-				:has-multiple-accounts="hasMultipleAccounts"
-				:selected-envelopes="selectedEnvelopes"
-				:compact-mode="compactMode"
-				:date-grouped="dateGrouped"
-				@delete="$emit('delete', env.databaseId)"
-				@update:selected="onEnvelopeSelectToggle(env, index, $event)"
-				@select-multiple="onEnvelopeSelectMultiple(env, index)"
-				@open:quick-actions-settings="showQuickActionsSettings = true" />
+			<template v-for="(env, index) in sortedEnvelops">
+				<SectionTitle
+					v-if="groupTitles[env.databaseId]"
+					:key="'group-' + env.databaseId"
+					class="section-title"
+					:name="groupTitles[env.databaseId]" />
+				<Envelope
+					:key="env.databaseId"
+					:data="env"
+					:mailbox="mailbox"
+					:selected="selection.includes(env.databaseId)"
+					:select-mode="selectMode"
+					:has-multiple-accounts="hasMultipleAccounts"
+					:selected-envelopes="selectedEnvelopes"
+					:compact-mode="compactMode"
+					:date-grouped="dateGrouped"
+					@delete="$emit('delete', env.databaseId)"
+					@update:selected="onEnvelopeSelectToggle(env, index, $event)"
+					@select-multiple="onEnvelopeSelectMultiple(env, index)"
+					@open:quick-actions-settings="showQuickActionsSettings = true" />
+			</template>
 			<div
 				v-if="loadMoreButton && !loadingMore"
 				:key="'list-collapse-' + searchQuery"
@@ -171,6 +184,7 @@ import { NcActionButton, NcActions, NcButton, NcDialog } from '@nextcloud/vue'
 import { mapStores } from 'pinia'
 import { differenceWith } from 'ramda'
 import AlertOctagonIcon from 'vue-material-design-icons/AlertOctagonOutline.vue'
+import IconSelectAll from 'vue-material-design-icons/CheckboxMultipleMarkedOutline.vue'
 import IconSelect from 'vue-material-design-icons/CloseThick.vue'
 import EmailRead from 'vue-material-design-icons/EmailOpenOutline.vue'
 import EmailUnread from 'vue-material-design-icons/EmailOutline.vue'
@@ -186,6 +200,7 @@ import IconDelete from 'vue-material-design-icons/TrashCanOutline.vue'
 import Settings from '../components/quickActions/Settings.vue'
 import Envelope from './Envelope.vue'
 import MoveModal from './MoveModal.vue'
+import SectionTitle from './SectionTitle.vue'
 import TagModal from './TagModal.vue'
 import dragEventBus from '../directives/drag-and-drop/util/dragEventBus.js'
 import { matchError } from '../errors/match.js'
@@ -206,11 +221,13 @@ export default {
 		NcDialog,
 		NcActionButton,
 		Envelope,
+		SectionTitle,
 		IconDelete,
 		ImportantIcon,
 		ImportantOutlineIcon,
 		IconFavorite,
 		IconSelect,
+		IconSelectAll,
 		MoveModal,
 		OpenInNewIcon,
 		ShareIcon,
@@ -271,6 +288,12 @@ export default {
 		dateGrouped: {
 			type: Boolean,
 			default: false,
+		},
+
+		/** Titles of date groups shown in the one list, keyed by the id of a group's first message */
+		groupTitles: {
+			type: Object,
+			default: () => ({}),
 		},
 	},
 
@@ -571,6 +594,11 @@ export default {
 				this.setEnvelopeSelected(this.sortedEnvelops[i], !selected)
 			}
 			this.lastToggledIndex = index
+		},
+
+		/** Select every message in the list, across the date groups */
+		selectAll() {
+			this.sortedEnvelops.forEach((envelope) => this.setEnvelopeSelected(envelope, true))
 		},
 
 		unselectAll() {
