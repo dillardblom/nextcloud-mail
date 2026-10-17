@@ -28,6 +28,9 @@ Numbers in the last column refer to the user's list `Nextcloud/Nextcloud-mail - 
 | Type to find an account or alias in the From field | `feat/searchable-from` | not submitted | 8 |
 | Convert non-UTF-8 subjects and recipients before insert | `fix/utf8-recipient-labels` | PR #13782, open | – |
 | `mail:account:list` and better account commands | `feat/account-commands-help` (local only) | not submitted | – |
+| Number of messages of a thread in the message list | `feat/thread-count` | not submitted | 13a |
+| Select across date groups, and "Select all" | `feat/select-across-groups` | not submitted | 15 |
+| Open an office attachment in Nextcloud Office (click or menu) | `feat/open-attachment-in-office` | not submitted | 14 |
 
 ## Not in this build
 
