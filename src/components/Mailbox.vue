@@ -405,6 +405,10 @@ export default {
 			return mailboxHasRights(this.mailbox, 's')
 		},
 
+		hasWriteAcl() {
+			return mailboxHasRights(this.mailbox, 'w')
+		},
+
 		hasArchiveAcl() {
 			return mailboxHasRights(this.mailbox, 'te')
 		},
@@ -526,6 +530,27 @@ export default {
 						error,
 					}))
 					break
+				case 'junk': {
+					if (!this.hasWriteAcl()) {
+						return
+					}
+					logger.debug('marking as spam/not spam via shortcut', { env })
+					try {
+						// Same steps as the junk action of a message in the list
+						const removeEnvelope = await this.mainStore.moveEnvelopeToJunk(env)
+						if (!env.flags.seen) {
+							await this.mainStore.toggleEnvelopeSeen({ envelope: env })
+						}
+						if (removeEnvelope) {
+							this.onDelete(env.databaseId)
+						}
+						await this.mainStore.toggleEnvelopeJunk({ envelope: env, removeEnvelope })
+					} catch (error) {
+						logger.error('could not mark envelope as spam via shortkey', { env, error })
+						showError(t('mail', 'Could not mark message as spam'))
+					}
+					break
+				}
 				case 'refresh':
 					logger.debug(`syncing folder ${this.mailbox.databaseId} (${this.searchQuery}) per shortcut`)
 					this.sync(false)

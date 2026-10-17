@@ -267,17 +267,11 @@
 			</NcAppSettingsSection>
 
 			<NcAppSettingsShortcutsSection>
+				<ShortcutSettings />
 				<NcHotkeyList>
 					<NcHotkey :label="t('mail', 'Compose new message')" hotkey="C" />
-					<NcHotkey :label="t('mail', 'Newer message')" hotkey="ArrowLeft" />
-					<NcHotkey :label="t('mail', 'Older message')" hotkey="ArrowRight" />
-					<NcHotkey :label="t('mail', 'Toggle star')" hotkey="S" />
-					<NcHotkey :label="t('mail', 'Toggle unread')" hotkey="U" />
-					<NcHotkey :label="t('mail', 'Archive')" hotkey="A" />
-					<NcHotkey :label="t('mail', 'Delete')" hotkey="Delete" />
 					<NcHotkey :label="t('mail', 'Search')" hotkey="Control F" />
 					<NcHotkey :label="t('mail', 'Send')" hotkey="Control Enter" />
-					<NcHotkey :label="t('mail', 'Refresh')" hotkey="R" />
 					<NcHotkey :label="t('mail', 'Reply')" hotkey="Control R" />
 					<NcHotkey :label="t('mail', 'Heading1')" hotkey="Control Alt 1" />
 					<NcHotkey :label="t('mail', 'Heading2')" hotkey="Control Alt 2" />
@@ -327,6 +321,7 @@ import CompactMode from 'vue-material-design-icons/ListBoxOutline.vue'
 import IconMedal from 'vue-material-design-icons/MedalOutline.vue'
 import IconAdd from 'vue-material-design-icons/Plus.vue'
 import InternalAddress from './InternalAddress.vue'
+import ShortcutSettings from './ShortcutSettings.vue'
 import SmimeCertificateModal from './smime/SmimeCertificateModal.vue'
 import List from './textBlocks/List.vue'
 import TextEditor from './TextEditor.vue'
@@ -337,6 +332,7 @@ import useMainStore from '../store/mainStore.js'
 export default {
 	name: 'AppSettingsMenu',
 	components: {
+		ShortcutSettings,
 		TrustedSenders,
 		InternalAddress,
 		NcButton,
