@@ -20,6 +20,21 @@ export async function saveAttachmentToFiles(id, attachmentId, directory) {
 	})
 }
 
+/**
+ * Save an attachment for opening it in Nextcloud: the folder is created if needed and an
+ * identical file already there is reused.
+ *
+ * @param {number} id message id
+ * @param {string} attachmentId attachment id
+ * @param {string} directory folder in the user's files
+ * @return {Promise<{path: string, fileId: number}>} the saved file
+ */
+export async function saveAttachmentForViewing(id, attachmentId, directory) {
+	const url = generateUrl('/apps/mail/api/messages/{id}/attachment/{attachmentId}', { id, attachmentId })
+	const { data } = await Axios.post(url, { targetPath: directory, forViewing: true })
+	return data[0]
+}
+
 export async function saveAttachmentsToFiles(id, directory) {
 	// attachmentId = 0 means 'all attachments' (see MessageController.php::saveAttachement)
 	return await saveAttachmentToFiles(id, 0, directory)

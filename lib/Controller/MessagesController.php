@@ -44,6 +44,7 @@ use OCP\AppFramework\Http\JSONResponse;
 use OCP\AppFramework\Http\Response;
 use OCP\AppFramework\Http\TemplateResponse;
 use OCP\AppFramework\Http\ZipResponse;
+use OCP\Files\File;
 use OCP\Files\Folder;
 use OCP\Files\GenericFileException;
 use OCP\Files\IFilenameValidator;
@@ -837,8 +838,10 @@ class MessagesController extends Controller {
 	 * @param int $id
 	 * @param string $attachmentId
 	 * @param string $targetPath
+	 * @param bool $forViewing create the target folder if needed and reuse an identical file
+	 *                         already there instead of adding a numbered copy (open in Office)
 	 *
-	 * @return JSONResponse
+	 * @return JSONResponse the saved files: [{path, fileId}]
 	 *
 	 * @throws ClientException
 	 * @throws GenericFileException
@@ -849,12 +852,16 @@ class MessagesController extends Controller {
 	#[TrapError]
 	public function saveAttachment(int $id,
 		string $attachmentId,
-		string $targetPath) {
+		string $targetPath,
+		bool $forViewing = false) {
 		if ($this->userId === null) {
 			return new JSONResponse([], Http::STATUS_UNAUTHORIZED);
 		}
 		if ($this->userFolder === null) {
 			return new JSONResponse([], Http::STATUS_INTERNAL_SERVER_ERROR);
+		}
+		if ($forViewing && !$this->userFolder->nodeExists($targetPath)) {
+			$this->userFolder->newFolder($targetPath);
 		}
 		if (!$this->userFolder->nodeExists($targetPath)) {
 			return new JSONResponse([], Http::STATUS_BAD_REQUEST);
@@ -888,6 +895,7 @@ class MessagesController extends Controller {
 			);
 		}
 
+		$saved = [];
 		foreach ($attachments as $attachment) {
 			$fileName = $attachment->getName() ?? $this->l10n->t('Embedded message %s', [
 				$attachment->getId(),
@@ -895,17 +903,27 @@ class MessagesController extends Controller {
 			$fileParts = pathinfo($fileName);
 			$fileName = $fileParts['filename'];
 			$fileExtension = $fileParts['extension'] ?? '';
+			$content = $attachment->getContent();
 			$fullPath = "$targetPath/$fileName.$fileExtension";
-			$counter = 2;
-			while ($this->userFolder->nodeExists($fullPath)) {
-				$fullPath = "$targetPath/$fileName ($counter).$fileExtension";
-				$counter++;
+			$file = null;
+			if ($forViewing && $this->userFolder->nodeExists($fullPath)) {
+				$node = $this->userFolder->get($fullPath);
+				if ($node instanceof File && $node->getSize() === strlen($content) && $node->hash('md5') === md5($content)) {
+					$file = $node;
+				}
 			}
-
-			$newFile = $this->userFolder->newFile($fullPath);
-			$newFile->putContent($attachment->getContent());
+			if ($file === null) {
+				$counter = 2;
+				while ($this->userFolder->nodeExists($fullPath)) {
+					$fullPath = "$targetPath/$fileName ($counter).$fileExtension";
+					$counter++;
+				}
+				$file = $this->userFolder->newFile($fullPath);
+				$file->putContent($content);
+			}
+			$saved[] = ['path' => $this->userFolder->getRelativePath($file->getPath()), 'fileId' => $file->getId()];
 		}
-		return new JSONResponse();
+		return new JSONResponse($saved);
 	}
 
 	/**

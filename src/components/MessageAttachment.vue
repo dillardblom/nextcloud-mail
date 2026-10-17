@@ -42,6 +42,18 @@
 					{{ t('mail', 'Download attachment') }}
 				</NcActionButton>
 				<NcActionButton
+					v-if="canOpenInOffice"
+					class="attachment-open-in-office"
+					:disabled="openingInOffice"
+					:close-after-click="true"
+					@click="openInOffice">
+					<template #icon>
+						<IconOpenInOffice v-if="!openingInOffice" :size="20" />
+						<NcLoadingIcon v-else :size="20" />
+					</template>
+					{{ t('mail', 'Open in Office') }}
+				</NcActionButton>
+				<NcActionButton
 					class="attachment-save-to-cloud"
 					:disabled="savingToCloud"
 					:close-after-click="true"
@@ -76,13 +88,15 @@
 import { showError, showSuccess } from '@nextcloud/dialogs'
 import { formatFileSize } from '@nextcloud/files'
 import { t } from '@nextcloud/l10n'
+import { generateUrl } from '@nextcloud/router'
 import { NcActionButton, NcActions, NcLoadingIcon } from '@nextcloud/vue'
 import IconArrow from 'vue-material-design-icons/ArrowLeft.vue'
+import IconOpenInOffice from 'vue-material-design-icons/FileDocumentEditOutline.vue'
 import IconSave from 'vue-material-design-icons/FolderOutline.vue'
 import IconAdd from 'vue-material-design-icons/Plus.vue'
 import IconDownload from 'vue-material-design-icons/TrayArrowDown.vue'
 import Logger from '../logger.js'
-import { downloadAttachment, saveAttachmentToFiles } from '../service/AttachmentService.js'
+import { downloadAttachment, saveAttachmentForViewing, saveAttachmentToFiles } from '../service/AttachmentService.js'
 import { getUserCalendars, importCalendarEvent } from '../service/DAVService.js'
 import { pickFolder } from '../util/filePicker.js'
 
@@ -93,6 +107,7 @@ export default {
 		NcActionButton,
 		IconAdd,
 		IconArrow,
+		IconOpenInOffice,
 		NcLoadingIcon,
 		IconSave,
 		IconDownload,
@@ -149,6 +164,7 @@ export default {
 	data() {
 		return {
 			savingToCloud: false,
+			openingInOffice: false,
 			loadingCalendars: false,
 			calendars: [],
 			showCalendarPopover: false,
@@ -177,6 +193,17 @@ export default {
 					action: this.importCalendar(cal.url),
 				}
 			})
+		},
+
+		/** An office document, and an office app (Nextcloud Office, ONLYOFFICE, Euro-Office) is enabled */
+		canOpenInOffice() {
+			const officeApps = ['richdocuments', 'onlyoffice', 'eurooffice']
+			const enabled = Object.keys(window.OC?.appswebroots ?? {})
+			if (!officeApps.some((app) => enabled.includes(app))) {
+				return false
+			}
+			return /^application\/(msword|rtf|vnd\.ms-(excel|powerpoint)|vnd\.openxmlformats-officedocument\.|vnd\.oasis\.opendocument\.(text|spreadsheet|presentation))/.test(this.mime ?? '')
+				|| /\.(docx?|xlsx?|pptx?|od[tsp]|rtf)$/i.test(this.fileName ?? '')
 		},
 
 		boundariesElement() {
@@ -228,6 +255,31 @@ export default {
 				showError(t('mail', 'Attachment could not be saved'))
 			} finally {
 				this.savingToCloud = false
+			}
+		},
+
+		/**
+		 * Save the attachment in the "Mail attachments" folder of the user's files and open it
+		 * there, which starts the office app. Opening it again reuses the saved copy.
+		 */
+		async openInOffice() {
+			this.openingInOffice = true
+			// Open the tab now: browsers block a new tab opened after an await
+			const tab = window.open('', '_blank')
+			try {
+				const file = await saveAttachmentForViewing(this.$route.params.threadId, this.id, '/' + t('mail', 'Mail attachments'))
+				const url = generateUrl('/f/{fileId}', { fileId: file.fileId })
+				if (tab) {
+					tab.location = url
+				} else {
+					window.location = url
+				}
+			} catch (error) {
+				tab?.close()
+				Logger.error('could not open the attachment in office', { error })
+				showError(t('mail', 'Could not open the attachment'))
+			} finally {
+				this.openingInOffice = false
 			}
 		},
 

@@ -482,15 +482,92 @@ class MessagesControllerTest extends TestCase {
 		$file->expects($this->once())
 			->method('putContent')
 			->with('abcdefg');
+		$file->method('getPath')->willReturn('/user/files/Downloads/cat.jpg');
+		$file->method('getId')->willReturn(42);
+		$this->userFolder->method('getRelativePath')
+			->with('/user/files/Downloads/cat.jpg')
+			->willReturn('/Downloads/cat.jpg');
 		$this->attachment->expects($this->once())
 			->method('getContent')
 			->will($this->returnValue('abcdefg'));
 
-		$expected = new JSONResponse();
+		$expected = new JSONResponse([['path' => '/Downloads/cat.jpg', 'fileId' => 42]]);
 		$response = $this->controller->saveAttachment(
 			$id,
 			$attachmentId,
 			$targetPath
+		);
+
+		$this->assertEquals($expected, $response);
+	}
+
+	public function testSaveAttachmentForViewingReusesAnIdenticalFile() {
+		$accountId = 17;
+		$mailboxId = 987;
+		$id = 123;
+		$uid = 321;
+		$attachmentId = '2.2';
+		$targetPath = 'Downloads';
+		$message = new \OCA\Mail\Db\Message();
+		$message->setMailboxId($mailboxId);
+		$message->setUid($uid);
+		$mailbox = new \OCA\Mail\Db\Mailbox();
+		$mailbox->setName('INBOX');
+		$mailbox->setAccountId($accountId);
+		$this->mailManager->expects($this->once())
+			->method('getMessage')
+			->with($this->userId, $id)
+			->willReturn($message);
+		$this->mailManager->expects($this->once())
+			->method('getMailbox')
+			->with($this->userId, $mailboxId)
+			->willReturn($mailbox);
+		$this->accountService->expects($this->once())
+			->method('find')
+			->with($this->equalTo($this->userId), $this->equalTo($accountId))
+			->will($this->returnValue($this->account));
+		$this->mailManager->expects($this->once())
+			->method('getMailAttachment')
+			->with($this->account, $mailbox, $message, $attachmentId)
+			->will($this->returnValue($this->attachment));
+		$this->attachment->expects($this->once())
+			->method('getName')
+			->with()
+			->will($this->returnValue('cat.jpg'));
+		$file = $this->getMockBuilder('\OCP\Files\File')
+			->disableOriginalConstructor()
+			->getMock();
+		$folderNode = $this->createStub(Folder::class);
+		$this->userFolder->expects($this->exactly(2))
+			->method('get')
+			->willReturnMap([['Downloads', $folderNode], ['Downloads/cat.jpg', $file]]);
+		// The folder exists after it was created, and an identical file is already in it
+		$this->userFolder->expects($this->exactly(3))
+			->method('nodeExists')
+			->withConsecutive(['Downloads'], ['Downloads'], ['Downloads/cat.jpg'])
+			->willReturnOnConsecutiveCalls(false, true, true);
+		$this->userFolder->expects($this->once())
+			->method('newFolder')
+			->with('Downloads');
+		$this->userFolder->expects($this->never())
+			->method('newFile');
+		$file->method('getSize')->willReturn(7);
+		$file->method('hash')->with('md5')->willReturn(md5('abcdefg'));
+		$file->method('getPath')->willReturn('/user/files/Downloads/cat.jpg');
+		$file->method('getId')->willReturn(42);
+		$this->userFolder->method('getRelativePath')
+			->with('/user/files/Downloads/cat.jpg')
+			->willReturn('/Downloads/cat.jpg');
+		$this->attachment->expects($this->once())
+			->method('getContent')
+			->will($this->returnValue('abcdefg'));
+
+		$expected = new JSONResponse([['path' => '/Downloads/cat.jpg', 'fileId' => 42]]);
+		$response = $this->controller->saveAttachment(
+			$id,
+			$attachmentId,
+			$targetPath,
+			true
 		);
 
 		$this->assertEquals($expected, $response);
@@ -550,11 +627,16 @@ class MessagesControllerTest extends TestCase {
 		$file->expects($this->once())
 			->method('putContent')
 			->with('abcdefg');
+		$file->method('getPath')->willReturn('/user/files/Downloads/cat.jpg');
+		$file->method('getId')->willReturn(42);
+		$this->userFolder->method('getRelativePath')
+			->with('/user/files/Downloads/cat.jpg')
+			->willReturn('/Downloads/cat.jpg');
 		$this->attachment->expects($this->once())
 			->method('getContent')
 			->will($this->returnValue('abcdefg'));
 
-		$expected = new JSONResponse();
+		$expected = new JSONResponse([['path' => '/Downloads/cat.jpg', 'fileId' => 42]]);
 		$response = $this->controller->saveAttachment(
 			$id,
 			$attachmentId,
