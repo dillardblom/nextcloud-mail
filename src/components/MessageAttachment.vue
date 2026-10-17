@@ -4,15 +4,15 @@
 -->
 
 <template>
-	<div class="attachment" :class="{ 'message-attachment--can-preview': canPreview }">
-		<div class="mail-attachment-img--wrapper" @click="$emit('open', $event)">
+	<div class="attachment" :class="{ 'message-attachment--can-preview': canPreview || canOpenInOffice }">
+		<div class="mail-attachment-img--wrapper" @click="onClick">
 			<img
 				v-if="isImage"
 				class="mail-attached-image"
 				:src="url">
 			<img v-else class="attachment-icon" :src="mimeUrl">
 		</div>
-		<div class="mail-attached--content" @click="$emit('open', $event)">
+		<div class="mail-attached--content" @click="onClick">
 			<span
 				class="attachment-name"
 				:title="label">{{ name }}
@@ -256,6 +256,19 @@ export default {
 			} finally {
 				this.savingToCloud = false
 			}
+		},
+
+		/**
+		 * A click previews images, video, audio and PDF, and opens office documents in the office app
+		 *
+		 * @param {MouseEvent} event the click
+		 */
+		onClick(event) {
+			if (!this.canPreview && this.canOpenInOffice) {
+				this.openInOffice()
+				return
+			}
+			this.$emit('open', event)
 		},
 
 		/**
