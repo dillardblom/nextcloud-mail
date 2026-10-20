@@ -88,7 +88,6 @@
 import { showError, showSuccess } from '@nextcloud/dialogs'
 import { formatFileSize } from '@nextcloud/files'
 import { t } from '@nextcloud/l10n'
-import { generateUrl } from '@nextcloud/router'
 import { NcActionButton, NcActions, NcLoadingIcon } from '@nextcloud/vue'
 import IconArrow from 'vue-material-design-icons/ArrowLeft.vue'
 import IconOpenInOffice from 'vue-material-design-icons/FileDocumentEditOutline.vue'
@@ -99,6 +98,7 @@ import Logger from '../logger.js'
 import { downloadAttachment, saveAttachmentForViewing, saveAttachmentToFiles } from '../service/AttachmentService.js'
 import { getUserCalendars, importCalendarEvent } from '../service/DAVService.js'
 import { pickFolder } from '../util/filePicker.js'
+import { officeUrl } from '../util/officeUrl.js'
 
 export default {
 	name: 'MessageAttachment',
@@ -206,6 +206,17 @@ export default {
 				|| /\.(docx?|xlsx?|pptx?|od[tsp]|rtf)$/i.test(this.fileName ?? '')
 		},
 
+		/**
+		 * A PDF while Euro-Office or ONLYOFFICE is enabled: they take over the PDF view of the
+		 * Viewer, which then fails on an attachment that is not a file yet ("FileId is empty").
+		 * Saved first, it opens in their editor like an office document.
+		 */
+		isPdfForOffice() {
+			const enabled = Object.keys(window.OC?.appswebroots ?? {})
+			return ['onlyoffice', 'eurooffice'].some((app) => enabled.includes(app))
+				&& (this.mime === 'application/pdf' || /\.pdf$/i.test(this.fileName ?? ''))
+		},
+
 		boundariesElement() {
 			return document.querySelector('#content-vue')
 		},
@@ -259,12 +270,13 @@ export default {
 		},
 
 		/**
-		 * A click previews images, video, audio and PDF, and opens office documents in the office app
+		 * A click previews images, video, audio and PDF, and opens office documents (and PDF, when
+		 * the office app shows those) in the office app
 		 *
 		 * @param {MouseEvent} event the click
 		 */
 		onClick(event) {
-			if (!this.canPreview && this.canOpenInOffice) {
+			if ((!this.canPreview && this.canOpenInOffice) || this.isPdfForOffice) {
 				this.openInOffice()
 				return
 			}
@@ -281,7 +293,7 @@ export default {
 			const tab = window.open('', '_blank')
 			try {
 				const file = await saveAttachmentForViewing(this.$route.params.threadId, this.id, '/' + t('mail', 'Mail attachments'))
-				const url = generateUrl('/f/{fileId}', { fileId: file.fileId })
+				const url = officeUrl(file.fileId, Object.keys(window.OC?.appswebroots ?? {}))
 				if (tab) {
 					tab.location = url
 				} else {
