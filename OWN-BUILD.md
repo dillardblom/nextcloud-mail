@@ -30,7 +30,7 @@ Numbers in the last column refer to the user's list `Nextcloud/Nextcloud-mail - 
 | `mail:account:list` and better account commands | `feat/account-commands-help` (local only) | not submitted | – |
 | Number of messages of a thread in the message list | `feat/thread-count` | not submitted | 13a |
 | Select across date groups, and "Select all" | `feat/select-across-groups` | not submitted | 15 |
-| Open an office attachment in Nextcloud Office (click or menu) | `feat/open-attachment-in-office` | not submitted | 14 |
+| Open an office attachment in the office app (click or menu), on its editor page; PDFs too with Euro-Office/ONLYOFFICE | `feat/open-attachment-in-office` | not submitted | 14 |
 | Configurable single-key shortcuts of the message list, and a key to mark as spam | `feat/configurable-shortcuts` | not submitted | – |
 
 ## Not in this build
