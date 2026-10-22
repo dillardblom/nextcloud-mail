@@ -67,6 +67,8 @@ OC.L10N.register(
     "Plain text" : "Adris aččuran",
     "No messages" : "Ulac iznan",
     "No subject" : "Ulac asentel",
+    "Reply all" : "Err-assen akk",
+    "Reply" : "Err",
     "Unfavorite" : "Kkes seg yismenyifen",
     "Favorite" : "Menyif",
     "Unread" : "Ur nettwaɣra ara",
@@ -123,7 +125,6 @@ OC.L10N.register(
     "New message" : "Izen amaynut",
     "Edit message" : "Ẓreg izen",
     "Draft" : "Arewway",
-    "Reply" : "Err",
     "attachment" : "taceqquft yeddan",
     "Exit full screen" : "Ffeɣ seg ugdil ačuran",
     "Full screen" : "Agdil aččuran",
@@ -145,8 +146,10 @@ OC.L10N.register(
     "Custom" : "Udmawan",
     "Add tag" : "Rnu tabzimt",
     "Task created" : "Tawuri tettwarna",
+    "Red" : "Azeggaɣ",
+    "Yellow" : "Awṛaɣ",
+    "Green" : "Adal",
     "Not found" : "Ulac-it",
-    "Reply all" : "Err-assen akk",
     "Unsubscribe" : "Ffeɣ seg ujerred",
     "Mark as favorite" : "Creḍ d amenyaf",
     "From:" : "Sɣur:",
@@ -197,8 +200,6 @@ OC.L10N.register(
     "Nextcloud Mail" : "Imayl n Nextcloud",
     "Discard changes" : "Sefsex ibeddilen",
     "Message sent" : "Izen yettwazen",
-    "Date:" : "Azemz:",
-    "Show less" : "Ssken cwiṭ",
-    "Show more" : "Sken ugar"
+    "Date:" : "Azemz:"
 },
 "nplurals=2; plural=(n != 1);");

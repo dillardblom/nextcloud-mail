@@ -1,6 +1,6 @@
-# Own build (v5.12.4-db)
+# Own build (v5.12.5-db)
 
-Own build of Nextcloud Mail for nc01: upstream tag v5.12.4 plus the changes below. This branch is
+Own build of Nextcloud Mail for nc01: upstream tag v5.12.5 plus the changes below. This branch is
 never submitted as a pull request; every change also lives on its own branch (against `origin/main`
 where it has been submitted upstream). Build with `~/dev-local/mail-build/build.sh <ref>`.
 

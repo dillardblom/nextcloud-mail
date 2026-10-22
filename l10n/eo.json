@@ -70,12 +70,15 @@
     "Enter a date" : "Entajpu daton",
     "Confirm" : "Konfirmi",
     "Revoke" : "Senvalidigi",
+    "Delete tag" : "Forigi etikedon",
     "Plain text" : "Ebenaĵa teksto",
     "No messages in this folder" : "Neniu mesaĝo en tiu dosierujo",
     "Blind copy recipients only" : "Nur blindkopiaj ricevontoj",
+    "Reply" : "Respondi",
     "Unfavorite" : "Malpliŝatati",
     "Favorite" : "Pliŝatati",
     "Read" : "Legi",
+    "Reply to sender only" : "Respondi nur al sendinto",
     "Edit tags" : "Redakti etikedojn",
     "More actions" : "Pliaj agoj",
     "Back" : "Antaŭen",
@@ -120,7 +123,6 @@
     "Rename" : "Alinomi",
     "Clear cache" : "Forviŝi la kaŝmemoron",
     "New message" : "Nova mesaĝo",
-    "Reply" : "Respondi",
     "Error sending your message" : "Eraro dum sendo de via mesaĝo",
     "Retry" : "Reprovi",
     "Message" : "Mesaĝo",
@@ -134,9 +136,7 @@
     "Select tags" : "Elekti etikedojn",
     "Custom" : "Propra",
     "Save signature" : "Konservi subskribon",
-    "Delete tag" : "Forigi etikedon",
     "Not found" : "Ne trovita",
-    "Reply to sender only" : "Respondi nur al sendinto",
     "From:" : "El:",
     "To:" : "Al:",
     "Untitled event" : "Sentitola okazaĵo",
@@ -192,8 +192,6 @@
     "Could not load the message" : "Ne eblis ŝargi la mesaĝon",
     "Date:" : "Dato:",
     "Tag already exists" : "La etikedo jam ekzistas",
-    "Error loading message" : "Eraris ŝargi mesaĝon",
-    "Show less" : "Montri malpli",
-    "Show more" : "Montri pli"
+    "Error loading message" : "Eraris ŝargi mesaĝon"
 },"pluralForm" :"nplurals=2; plural=(n != 1);"
 }

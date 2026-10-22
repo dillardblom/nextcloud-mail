@@ -63,6 +63,7 @@ OC.L10N.register(
     "Set reminder for this weekend" : "Set reminder for this weekend",
     "Next week – {timeLocale}" : "Wiki ijayo-{timeLocale}",
     "Set reminder for next week" : "Set reminder for next week",
+    "Reply" : "Jibu",
     "Favorite" : "Kipendwa",
     "Unread" : "Unread",
     "Read" : "Soma",
@@ -122,7 +123,6 @@ OC.L10N.register(
     "New message" : "Ujumbe mpya",
     "Edit message" : "Hariri ujumbe",
     "Draft" : "Draft",
-    "Reply" : "Jibu",
     "Exit full screen" : "Ondoka kwenye skrini nzima",
     "Full screen" : "Skrini nzima",
     "Retry" : "Jaribu tene",
@@ -141,6 +141,9 @@ OC.L10N.register(
     "Custom" : "Mteja",
     "Add tag" : "Add tag",
     "Task created" : "Task created",
+    "Red" : "Nyekundu",
+    "Yellow" : "Njano",
+    "Green" : "Kijani",
     "Not found" : "Haipatikani",
     "Unsubscribe" : "Unsubscribe",
     "From:" : "Tangu:",
@@ -186,8 +189,6 @@ OC.L10N.register(
     "Nextcloud Mail" : "Nextcloud Mail",
     "Discard changes" : "Discard changes",
     "Message sent" : "Ujumbe umetumwa",
-    "Date:" : "Tarehe:",
-    "Show less" : "Show less",
-    "Show more" : "Show more"
+    "Date:" : "Tarehe:"
 },
 "nplurals=2; plural=(n != 1);");
