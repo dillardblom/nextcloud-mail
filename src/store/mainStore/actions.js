@@ -209,6 +209,21 @@ function transformMailboxName(account, mailbox) {
 	}
 }
 
+/**
+ * Only the threaded list sends a thread size; other fetches must not wipe it.
+ *
+ * @param {object} existing the stored envelope
+ * @param {object} envelope the fetched envelope
+ * @return {object}
+ */
+function keepThreadSize(existing, envelope) {
+	const merged = { ...existing, ...envelope }
+	if ((envelope.threadSize ?? null) === null && existing.threadSize) {
+		merged.threadSize = existing.threadSize
+	}
+	return merged
+}
+
 export default function mainStoreActions() {
 	let accountSettingsSave = Promise.resolve()
 	const foldedVersions = {}
@@ -2168,7 +2183,7 @@ export default function mainStoreActions() {
 				const mailbox = this.mailboxes[envelope.mailboxId]
 				const existing = mailbox.envelopeLists[listId] || []
 				this.normalizeTags(envelope)
-				Vue.set(this.envelopes, envelope.databaseId, { ...this.envelopes[envelope.databaseId] || {}, ...envelope })
+				Vue.set(this.envelopes, envelope.databaseId, keepThreadSize(this.envelopes[envelope.databaseId] || {}, envelope))
 				Vue.set(envelope, 'accountId', mailbox.accountId)
 				Vue.set(mailbox.envelopeLists, listId, uniq(orderByDateInt(this.appendOrReplaceEnvelopeId(existing, envelope))))
 				if (!addToUnifiedMailboxes) {
@@ -2352,7 +2367,7 @@ export default function mainStoreActions() {
 				const mailbox = this.mailboxes[e.mailboxId]
 				Vue.set(e, 'accountId', mailbox.accountId)
 				const existing = this.envelopes[e.databaseId] || {}
-				const merged = { ...existing, ...e }
+				const merged = keepThreadSize(existing, e)
 				// preserve attachments
 				if (existing.attachments && existing.attachments.length > 0) {
 					merged.attachments = existing.attachments
