@@ -125,11 +125,6 @@
 				<span class="envelope__recipient-text">
 					{{ addresses }}
 				</span>
-				<NcCounterBubble
-					v-if="data.threadSize > 1"
-					class="envelope__thread-size"
-					:count="data.threadSize"
-					:title="n('mail', '{count} message in this conversation', '{count} messages in this conversation', data.threadSize, { count: data.threadSize })" />
 				<span
 					v-if="accountLabel"
 					class="envelope__account-label"
@@ -206,9 +201,17 @@
 			</div>
 		</template>
 		<template #indicator>
+			<span
+				v-if="data.threadSize > 1"
+				class="envelope__thread-size"
+				:class="{ 'envelope__thread-size--unread': !data.flags.seen }"
+				:title="threadSizeLabel"
+				:aria-label="threadSizeLabel">
+				{{ data.threadSize }}
+			</span>
 			<!-- Color dot -->
 			<IconBullet
-				v-if="!data.flags.seen"
+				v-else-if="!data.flags.seen"
 				:size="20"
 				:aria-hidden="false"
 				:aria-label="t('mail', 'This message is unread')"
@@ -581,7 +584,6 @@ import {
 	NcActionText,
 	NcAssistantIcon,
 	NcCheckboxRadioSwitch,
-	NcCounterBubble,
 } from '@nextcloud/vue'
 import escapeHtml from 'escape-html'
 import { mapState, mapStores } from 'pinia'
@@ -664,7 +666,6 @@ export default {
 		JunkIcon,
 		NcActionButton,
 		NcCheckboxRadioSwitch,
-		NcCounterBubble,
 		MoveModal,
 		OpenInNewIcon,
 		PlusIcon,
@@ -889,6 +890,13 @@ export default {
 		isEncrypted() {
 			return this.data.encrypted // S/MIME
 				|| (this.data.previewText && isPgpText(this.data.previewText)) // PGP/Mailvelope
+		},
+
+		threadSizeLabel() {
+			const count = { count: this.data.threadSize }
+			return this.data.flags.seen
+				? n('mail', '{count} message in this conversation', '{count} messages in this conversation', this.data.threadSize, count)
+				: n('mail', 'Unread, {count} message in this conversation', 'Unread, {count} messages in this conversation', this.data.threadSize, count)
 		},
 
 		isImportant() {
@@ -1913,10 +1921,26 @@ export default {
 	white-space: nowrap;
 }
 
-// Number of messages in the thread, right after the sender
 .envelope__thread-size {
-	flex: 0 0 auto;
-	margin-inline-start: 6px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	box-sizing: border-box;
+	min-width: calc(5 * var(--default-grid-baseline));
+	height: calc(5 * var(--default-grid-baseline));
+	padding: 0 calc(1.5 * var(--default-grid-baseline));
+	border: var(--border-width-input-focused, 2px) solid var(--color-primary-element);
+	border-radius: var(--border-radius-pill);
+	background-color: var(--color-main-background);
+	color: var(--color-primary-element);
+	font-size: var(--font-size-small, 13px);
+	font-weight: bold;
+	line-height: 1;
+
+	&--unread {
+		background-color: var(--color-primary-element);
+		color: var(--color-primary-element-text);
+	}
 }
 
 // Same look as the tags of a message
