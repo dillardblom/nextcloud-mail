@@ -24,10 +24,13 @@
 		:compact="compactMode"
 		:is-read="showImportantIconVariant"
 		:is-important="isImportant"
+		:is-favorite="data.flags.flagged"
+		:can-favorite="hasWriteAcl"
 		@click.exact="onClick"
 		@click.ctrl.exact.prevent="toggleSelected"
 		@click.shift.exact.prevent="onSelectMultiple"
 		@delete="onDelete"
+		@toggle-flagged="onToggleFlagged"
 		@toggle-important="onToggleImportant"
 		@toggle-seen="onToggleSeen"
 		@update:menuOpen="closeMoreAndSnoozeOptions">
