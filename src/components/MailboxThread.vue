@@ -225,7 +225,7 @@ import {
 	priorityImportantQuery,
 	priorityOtherQuery,
 } from '../util/priorityInbox.js'
-import { effectiveShortcuts } from '../util/shortcuts.js'
+import { effectiveShortcuts, shortkeyOf } from '../util/shortcuts.js'
 import { detect, toHtml, toPlain } from '../util/text.js'
 
 const START_MAILBOX_DEBOUNCE = 5 * 1000
@@ -282,10 +282,15 @@ export default {
 	computed: {
 		...mapStores(useMainStore),
 
-		/** The list shortcuts, with the user's own keys (vue-shortkey wants a list of keys per action) */
+		/**
+		 * The list shortcuts, with the user's own keys (vue-shortkey wants a list of keys per
+		 * action). Reply needs the open thread, so `Thread` takes that one itself.
+		 */
 		shortkeys() {
 			const keys = effectiveShortcuts(this.mainStore.getPreference('shortcuts'))
-			return Object.fromEntries(Object.entries(keys).map(([action, key]) => [action, [key]]))
+			return Object.fromEntries(Object.entries(keys)
+				.filter(([action]) => action !== 'reply')
+				.map(([action, key]) => [action, shortkeyOf(key)]))
 		},
 
 		/** v-shortkey binds once: re-render the list when the keys change */

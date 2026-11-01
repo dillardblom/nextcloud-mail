@@ -4,24 +4,30 @@
  */
 
 import { isAppleDevice } from './printMessage.ts'
+import { DEFAULT_SHORTCUTS, effectiveShortcuts, matchesShortcut } from './shortcuts.js'
 
 /**
- * Whether a keydown event is the "reply" shortcut known from Outlook and
- * Thunderbird: Cmd+R on macOS, Ctrl+R everywhere else. Shift and Alt must not be
- * held, so Ctrl+Shift+R (the browser's hard reload) keeps working. The physical
- * key is matched, like the print shortcut, so the keyboard layout does not matter.
+ * The reply key in effect: the user's own, or the default
+ *
+ * @param {object} mainStore the main store, for the "shortcuts" preference
+ * @return {string}
+ */
+export function replyKey(mainStore) {
+	return effectiveShortcuts(mainStore.getPreference('shortcuts')).reply
+}
+
+/**
+ * Whether a keydown event is the "reply" shortcut: the user's own key, or by default the one
+ * known from Outlook and Thunderbird, Cmd+R on macOS and Ctrl+R everywhere else. Shift and Alt
+ * must not be held, so Ctrl+Shift+R (the browser's hard reload) keeps working.
  *
  * @param {KeyboardEvent} event the keydown event
+ * @param {string} key the reply key, e.g. "mod+r" or "r"
  * @param {boolean} appleDevice whether the platform is macOS
  * @return {boolean}
  */
-export function isReplyShortcut(event, appleDevice = isAppleDevice()) {
-	if (event.code !== 'KeyR' || event.shiftKey || event.altKey) {
-		return false
-	}
-	return appleDevice
-		? event.metaKey && !event.ctrlKey
-		: event.ctrlKey && !event.metaKey
+export function isReplyShortcut(event, key = DEFAULT_SHORTCUTS.reply, appleDevice = isAppleDevice()) {
+	return matchesShortcut(event, key, appleDevice)
 }
 
 /**
