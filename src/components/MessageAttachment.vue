@@ -4,7 +4,7 @@
 -->
 
 <template>
-	<div class="attachment" :class="{ 'message-attachment--can-preview': canPreview || canOpenInOffice }">
+	<div class="attachment" :class="{ 'message-attachment--can-preview': canPreview || canOpenInOffice || isAudio }">
 		<div class="mail-attachment-img--wrapper" @click="onClick">
 			<img
 				v-if="isImage"
@@ -19,6 +19,14 @@
 			</span>
 			<span class="attachment-size">{{ humanReadable(size) }}</span>
 		</div>
+		<audio
+			v-if="isAudio"
+			ref="audio"
+			class="attachment-audio"
+			controls
+			preload="none"
+			:src="url"
+			:aria-label="t('mail', 'Play {name}', { name })" />
 		<NcActions :boundaries-element="boundariesElement">
 			<template v-if="!showCalendarPopover">
 				<NcActionButton
@@ -215,6 +223,15 @@ export default {
 				|| /\.(docx?|xlsx?|pptx?|od[tsp]|rtf)$/i.test(this.fileName ?? '')
 		},
 
+		/** Audio the browser plays; senders often label it application/octet-stream, so the extension counts too */
+		isAudio() {
+			if (/^audio\//.test(this.mime ?? '')) {
+				return true
+			}
+			return /^application\/(octet-stream|ogg)$/.test(this.mime ?? '')
+				&& /\.(mp3|ogg|oga|opus|wav|m4a|aac|flac|weba)$/i.test(this.fileName ?? '')
+		},
+
 		/**
 		 * A PDF while Euro-Office or ONLYOFFICE is enabled: they take over the PDF view of the
 		 * Viewer, which then fails on an attachment that is not a file yet ("FileId is empty").
@@ -285,6 +302,15 @@ export default {
 		 * @param {MouseEvent} event the click
 		 */
 		onClick(event) {
+			if (this.isAudio) {
+				const audio = this.$refs.audio
+				if (audio.paused) {
+					audio.play()
+				} else {
+					audio.pause()
+				}
+				return
+			}
 			if ((!this.canPreview && this.canOpenInOffice) || this.isPdfForOffice) {
 				this.openInOffice()
 				return
@@ -418,6 +444,12 @@ export default {
 	width: calc(100% - 100px);
 	display: flex;
     flex-direction: column;
+}
+
+.attachment-audio {
+	width: 100%;
+	height: 36px;
+	margin-top: 4px;
 }
 
 .mail-attached-image {
