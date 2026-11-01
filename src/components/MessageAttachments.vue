@@ -11,6 +11,7 @@
 					v-for="(attachment, idx) in attachments"
 					:id="attachment.id"
 					ref="attachments"
+					:message-id="envelope.databaseId"
 					:key="attachment.id"
 					:file-name="attachment.fileName"
 					:size="attachment.size"
@@ -167,7 +168,7 @@ export default {
 			}
 
 			this.savingToCloud = true
-			const id = this.$route.params.threadId
+			const id = this.envelope.databaseId
 
 			try {
 				await saveAttachmentsToFiles(id, path)
