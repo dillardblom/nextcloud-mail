@@ -37,6 +37,9 @@ The last column refers to the item in our own wish list.
 | Select across date groups, and "Select all" | `feat/select-across-groups` | not submitted | 15 |
 | Open an office attachment in the office app (click or menu), on its editor page; PDFs too with Euro-Office/ONLYOFFICE | `feat/open-attachment-in-office` | not submitted | 14 |
 | Configurable single-key shortcuts of the message list, and a key to mark as spam | `feat/configurable-shortcuts` | not submitted | – |
+| Reply among the configurable shortcuts, Ctrl/Cmd combinations (e.g. R to reply, Ctrl+R to refresh); own keys kept after a reload | `feat/configurable-reply-refresh` | not submitted | 21 |
+| Favorite among the actions shown when hovering a message | `feat/hover-favorite` | not submitted | 20 |
+| Refresh the open message list every 5/15/30/60 minutes (default 15) or manually | `feat/auto-refresh` | not submitted | 19 |
 
 ## Not in this build
 
