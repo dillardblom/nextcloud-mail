@@ -119,6 +119,15 @@ export default {
 			required: true,
 		},
 
+		/**
+		 * The message the attachment belongs to. In a thread this need not be the message in
+		 * the route, and an attachment id is only unique within its own message.
+		 */
+		messageId: {
+			type: Number,
+			required: true,
+		},
+
 		fileName: {
 			type: String,
 			default: t('mail', 'Unnamed'),
@@ -255,7 +264,7 @@ export default {
 			}
 
 			this.savingToCloud = true
-			const id = this.$route.params.threadId
+			const id = this.messageId
 
 			try {
 				await saveAttachmentToFiles(id, this.id, path)
@@ -292,7 +301,7 @@ export default {
 			// Open the tab now: browsers block a new tab opened after an await
 			const tab = window.open('', '_blank')
 			try {
-				const file = await saveAttachmentForViewing(this.$route.params.threadId, this.id, '/' + t('mail', 'Mail attachments'))
+				const file = await saveAttachmentForViewing(this.messageId, this.id, '/' + t('mail', 'Mail attachments'))
 				const url = officeUrl(file.fileId, Object.keys(window.OC?.appswebroots ?? {}))
 				if (tab) {
 					tab.location = url
