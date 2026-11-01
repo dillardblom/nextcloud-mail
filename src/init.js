@@ -109,6 +109,10 @@ export default function initAfterAppCreation() {
 		key: 'modalSize',
 		value: preferences.modalSize,
 	})
+	mainStore.savePreferenceMutation({
+		key: 'shortcuts',
+		value: preferences.shortcuts,
+	})
 
 	mainStore.setQuickActions(loadState('mail', 'quick-actions', []))
 
