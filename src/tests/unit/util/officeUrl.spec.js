@@ -5,7 +5,7 @@
 
 import { officeUrl } from '../../../util/officeUrl.js'
 
-jest.mock('@nextcloud/router', () => ({
+vi.mock('@nextcloud/router', () => ({
 	generateUrl: (url, params) => '/index.php' + url.replace('{fileId}', params.fileId),
 }))
 
