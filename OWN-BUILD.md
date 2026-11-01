@@ -40,6 +40,7 @@ The last column refers to the item in our own wish list.
 | Reply among the configurable shortcuts, Ctrl/Cmd combinations (e.g. R to reply, Ctrl+R to refresh); own keys kept after a reload | `feat/configurable-reply-refresh` | not submitted | 21 |
 | Favorite among the actions shown when hovering a message | `feat/hover-favorite` | not submitted | 20 |
 | Refresh the open message list every 5/15/30/60 minutes (default 15) or manually | `feat/auto-refresh` | not submitted | 19 |
+| In a thread, save or open the attachment of its own message (was: same attachment number of the selected message, e.g. an .eml instead of a PDF) | `fix/attachment-of-its-own-message` | not submitted (also in upstream `main`) | 23 |
 
 ## Not in this build
 
