@@ -70,6 +70,13 @@
 						<IconSelect :size="20" />
 					</NcButton>
 					<NcButton
+						v-if="archivableSelection.length > 0"
+						variant="tertiary"
+						:title="n('mail', 'Archive {number} thread', 'Archive {number} threads', archivableSelection.length, { number: archivableSelection.length })"
+						@click.prevent="archiveAllSelected">
+						<ArchiveIcon :size="20" />
+					</NcButton>
+					<NcButton
 						variant="tertiary"
 						:title="n(
 							'mail',
@@ -184,6 +191,7 @@ import { NcActionButton, NcActions, NcButton, NcDialog } from '@nextcloud/vue'
 import { mapStores } from 'pinia'
 import { differenceWith } from 'ramda'
 import AlertOctagonIcon from 'vue-material-design-icons/AlertOctagonOutline.vue'
+import ArchiveIcon from 'vue-material-design-icons/ArchiveArrowDownOutline.vue'
 import IconSelectAll from 'vue-material-design-icons/CheckboxMultipleMarkedOutline.vue'
 import IconSelect from 'vue-material-design-icons/CloseThick.vue'
 import EmailRead from 'vue-material-design-icons/EmailOpenOutline.vue'
@@ -208,6 +216,7 @@ import NoTrashMailboxConfiguredError
 	from '../errors/NoTrashMailboxConfiguredError.js'
 import logger from '../logger.js'
 import useMainStore from '../store/mainStore.js'
+import { mailboxHasRights } from '../util/acl.js'
 
 export default {
 	name: 'EnvelopeList',
@@ -232,6 +241,7 @@ export default {
 		OpenInNewIcon,
 		ShareIcon,
 		AlertOctagonIcon,
+		ArchiveIcon,
 		TagIcon,
 		TagModal,
 		Settings,
@@ -378,6 +388,20 @@ export default {
 
 		selectedEnvelopes() {
 			return this.sortedEnvelops.filter((env) => this.selection.includes(env.databaseId))
+		},
+
+		/** Selected messages whose account has an archive mailbox they are not already in, with the rights to move them there */
+		archivableSelection() {
+			return this.selectedEnvelopes.filter((envelope) => {
+				const archiveMailboxId = this.mainStore.getAccount(envelope.accountId)?.archiveMailboxId
+				if (archiveMailboxId === null || archiveMailboxId === undefined || archiveMailboxId === envelope.mailboxId) {
+					return false
+				}
+				const source = this.mainStore.getMailbox(envelope.mailboxId)
+				const archive = this.mainStore.getMailbox(archiveMailboxId)
+				return source !== undefined && archive !== undefined
+					&& mailboxHasRights(source, 'te') && mailboxHasRights(archive, 'i')
+			})
 		},
 
 		hasMultipleAccounts() {
@@ -561,6 +585,20 @@ export default {
 				})
 			}
 			this.unselectAll()
+		},
+
+		async archiveAllSelected() {
+			const envelopes = this.archivableSelection
+			this.unselectAll()
+			const results = await Promise.allSettled(envelopes.map((envelope) => this.mainStore.moveThread({
+				envelope,
+				destMailboxId: this.mainStore.getAccount(envelope.accountId).archiveMailboxId,
+			})))
+			const failed = results.filter((result) => result.status === 'rejected')
+			if (failed.length > 0) {
+				logger.error('could not archive messages', { errors: failed.map((result) => result.reason) })
+				showError(n('mail', 'Could not archive {number} thread', 'Could not archive {number} threads', failed.length, { number: failed.length }))
+			}
 		},
 
 		setEnvelopeSelected(envelope, selected) {
