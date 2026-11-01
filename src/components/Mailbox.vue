@@ -185,6 +185,12 @@ export default {
 		showLoadMore() {
 			return !this.endReached && this.paginate === 'manual'
 		},
+
+		/** Minutes between refreshes of the open list ("auto-refresh" preference), 0 for never */
+		autoRefreshMinutes() {
+			const minutes = Number.parseInt(this.mainStore.getPreference('auto-refresh', '15') ?? '15', 10)
+			return Number.isNaN(minutes) || minutes < 0 ? 15 : minutes
+		},
 	},
 
 	watch: {
@@ -207,6 +213,10 @@ export default {
 		sortOrder() {
 			this.loadEnvelopes()
 		},
+
+		autoRefreshMinutes() {
+			this.startAutoRefresh()
+		},
 	},
 
 	created() {
@@ -215,6 +225,7 @@ export default {
 		this.bus.on('archive', this.onArchive)
 		this.bus.on('shortcut', this.handleShortcut)
 		this.loadMailboxInterval = setInterval(this.loadMailbox, 60000)
+		this.startAutoRefresh()
 	},
 
 	async mounted() {
@@ -676,9 +687,33 @@ export default {
 			}
 		},
 
+		/**
+		 * Refresh the open list every few minutes, as the refresh shortcut does. The background
+		 * sync above leaves out the inboxes, which the app syncs itself, but not the lists
+		 * built from them (all inboxes, priority inbox, a search), so those otherwise only
+		 * changed on a manual refresh.
+		 */
+		startAutoRefresh() {
+			clearInterval(this.autoRefreshInterval)
+			this.autoRefreshInterval = undefined
+			if (this.autoRefreshMinutes === 0) {
+				return
+			}
+			this.autoRefreshInterval = setInterval(async () => {
+				try {
+					logger.debug(`refreshing folder ${this.mailbox.databaseId} (${this.searchQuery}) automatically`)
+					await this.sync(false)
+				} catch (error) {
+					logger.error('Automatic refresh failed: ' + error.message, { error })
+				}
+			}, this.autoRefreshMinutes * 60 * 1000)
+		},
+
 		stopInterval() {
 			clearInterval(this.loadMailboxInterval)
 			this.loadMailboxInterval = undefined
+			clearInterval(this.autoRefreshInterval)
+			this.autoRefreshInterval = undefined
 		},
 
 		getLabelForGroup(group) {

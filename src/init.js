@@ -109,6 +109,10 @@ export default function initAfterAppCreation() {
 		key: 'modalSize',
 		value: preferences.modalSize,
 	})
+	mainStore.savePreferenceMutation({
+		key: 'auto-refresh',
+		value: preferences['auto-refresh'],
+	})
 
 	mainStore.setQuickActions(loadState('mail', 'quick-actions', []))
 

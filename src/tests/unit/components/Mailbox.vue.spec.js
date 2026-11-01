@@ -89,4 +89,48 @@ describe('Mailbox', () => {
 			expect(context.loadEnvelopes).not.toHaveBeenCalled()
 		})
 	})
+
+	describe('startAutoRefresh', () => {
+		beforeEach(() => {
+			vi.useFakeTimers()
+		})
+
+		afterEach(() => {
+			vi.useRealTimers()
+		})
+
+		it('refreshes the open list every set number of minutes', () => {
+			const context = { ...createContext(vi.fn()), autoRefreshMinutes: 15, sync: vi.fn().mockResolvedValue() }
+			Mailbox.methods.startAutoRefresh.call(context)
+
+			vi.advanceTimersByTime(14 * 60 * 1000)
+			expect(context.sync).not.toHaveBeenCalled()
+			vi.advanceTimersByTime(60 * 1000)
+			expect(context.sync).toHaveBeenCalledWith(false)
+
+			clearInterval(context.autoRefreshInterval)
+		})
+
+		it('does not refresh when set to manually, and stops the previous timer', () => {
+			const context = { ...createContext(vi.fn()), autoRefreshMinutes: 5, sync: vi.fn().mockResolvedValue() }
+			Mailbox.methods.startAutoRefresh.call(context)
+			context.autoRefreshMinutes = 0
+			Mailbox.methods.startAutoRefresh.call(context)
+
+			vi.advanceTimersByTime(60 * 60 * 1000)
+			expect(context.sync).not.toHaveBeenCalled()
+			expect(context.autoRefreshInterval).toBeUndefined()
+		})
+	})
+
+	describe('autoRefreshMinutes', () => {
+		const minutes = (value) => Mailbox.computed.autoRefreshMinutes.call({ mainStore: { getPreference: () => value } })
+
+		it('reads the preference, with 15 minutes for a missing or invalid value', () => {
+			expect(minutes('5')).toBe(5)
+			expect(minutes('0')).toBe(0)
+			expect(minutes(undefined)).toBe(15)
+			expect(minutes('soon')).toBe(15)
+		})
+	})
 })
