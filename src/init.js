@@ -113,6 +113,10 @@ export default function initAfterAppCreation() {
 		key: 'shortcuts',
 		value: preferences.shortcuts,
 	})
+	mainStore.savePreferenceMutation({
+		key: 'auto-refresh',
+		value: preferences['auto-refresh'],
+	})
 
 	mainStore.setQuickActions(loadState('mail', 'quick-actions', []))
 

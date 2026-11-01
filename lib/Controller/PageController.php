@@ -244,6 +244,7 @@ class PageController extends Controller {
 			'auto-mark-as-read' => $this->preferences->getPreference($this->userId, 'auto-mark-as-read', '3000'),
 			'modalSize' => $this->preferences->getPreference($this->userId, 'modalSize', 'normal'),
 			'shortcuts' => $this->preferences->getPreference($this->userId, 'shortcuts', '{}'),
+			'auto-refresh' => $this->preferences->getPreference($this->userId, 'auto-refresh', '15'),
 		]);
 		$this->initialStateService->provideInitialState(
 			'prefill_displayName',

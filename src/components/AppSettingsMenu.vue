@@ -160,6 +160,16 @@
 					<NcRadioGroupButton :label="t('mail', 'Manually')" value="-1" :disabled="hasLoadingState('auto-mark-as-read')" />
 				</NcRadioGroup>
 
+				<NcRadioGroup :model-value="autoRefresh" :label="t('mail', 'Refresh the message list')" @update:modelValue="onChangeAutoRefresh">
+					<NcRadioGroupButton
+						v-for="minutes in [5, 15, 30, 60]"
+						:key="minutes"
+						:label="n('mail', 'Every %n minute', 'Every %n minutes', minutes)"
+						:value="String(minutes)"
+						:disabled="hasLoadingState('auto-refresh')" />
+					<NcRadioGroupButton :label="t('mail', 'Manually')" value="0" :disabled="hasLoadingState('auto-refresh')" />
+				</NcRadioGroup>
+
 				<NcRadioGroup :model-value="useBottomReplies" :label="t('mail', 'Reply position')" @update:modelValue="onToggleButtonReplies">
 					<NcRadioGroupButton :label="t('mail', 'Top')" :value="false" :disabled="hasLoadingState('reply-mode')" />
 					<NcRadioGroupButton :label="t('mail', 'Bottom')" :value="true" :disabled="hasLoadingState('reply-mode')" />
@@ -463,6 +473,11 @@ export default {
 			},
 		},
 
+		/** Minutes between refreshes of the open message list, "0" for manually only */
+		autoRefresh() {
+			return this.mainStore.getPreference('auto-refresh', '15')
+		},
+
 		useExternalAvatars: {
 			get() {
 				return this.mainStore.getPreference('external-avatars', 'true') === 'true'
@@ -702,6 +717,22 @@ export default {
 				showError(t('mail', 'Could not update preference'))
 			} finally {
 				this.setLoadingState('auto-mark-as-read', false)
+			}
+		},
+
+		async onChangeAutoRefresh(value) {
+			this.setLoadingState('auto-refresh', true)
+
+			try {
+				await this.mainStore.savePreference({
+					key: 'auto-refresh',
+					value: String(value),
+				})
+			} catch (error) {
+				Logger.error('could not save preferences', { error })
+				showError(t('mail', 'Could not update preference'))
+			} finally {
+				this.setLoadingState('auto-refresh', false)
 			}
 		},
 
