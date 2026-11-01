@@ -5,7 +5,7 @@
 <template>
 	<div class="shortcut-settings">
 		<p class="shortcut-settings__hint">
-			{{ t('mail', 'Click a key and press the new key to change it.') }}
+			{{ t('mail', 'Click a key and press the new key (or key combination) to change it.') }}
 		</p>
 		<ul>
 			<li v-for="(label, action) in labels" :key="action" class="shortcut-settings__row">
@@ -35,6 +35,7 @@ import { NcButton } from '@nextcloud/vue'
 import { mapStores } from 'pinia'
 import logger from '../logger.js'
 import useMainStore from '../store/mainStore.js'
+import { isAppleDevice } from '../util/printMessage.ts'
 import { DEFAULT_SHORTCUTS, effectiveShortcuts, shortcutKeyFromEvent, shortcutKeyLabel, shortcutLabels } from '../util/shortcuts.js'
 
 export default {
@@ -86,9 +87,12 @@ export default {
 				this.recording = null
 				return
 			}
+			if (['Control', 'Meta', 'Shift', 'Alt'].includes(event.key)) {
+				return // wait for the rest of the combination
+			}
 			const key = shortcutKeyFromEvent(event)
 			if (key === null) {
-				this.message = t('mail', 'Use a letter, digit, arrow key or Delete, without Ctrl, Alt or Cmd.')
+				this.message = t('mail', 'Use a letter, digit, arrow key or Delete, or {modifier} with a letter or digit (not N, Q, T or W). Shift and Alt cannot be used.', { modifier: isAppleDevice() ? 'Cmd' : 'Ctrl' })
 				return
 			}
 			const taken = Object.entries(this.shortcuts).find(([other, otherKey]) => other !== action && otherKey === key)

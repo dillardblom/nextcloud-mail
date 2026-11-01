@@ -65,7 +65,7 @@ import {
 	renderPlainTextMessage,
 	waitForImages,
 } from '../util/printMessage.ts'
-import { isDialogOpen, isEditableTarget, isReplyShortcut } from '../util/replyShortcut.js'
+import { isDialogOpen, isEditableTarget, isReplyShortcut, replyKey } from '../util/replyShortcut.js'
 import { wait } from '../util/wait.js'
 
 /**
@@ -326,7 +326,7 @@ export default {
 		 * @param {KeyboardEvent} event the app window's keydown event
 		 */
 		async handleKeyDown(event) {
-			if (isReplyShortcut(event)) {
+			if (isReplyShortcut(event, replyKey(this.mainStore))) {
 				this.replyViaShortcut(event)
 				return
 			}
