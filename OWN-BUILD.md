@@ -1,10 +1,15 @@
 # Own build (v5.12.6-db)
 
-Own build of Nextcloud Mail for nc01: upstream tag v5.12.6 plus the changes below. This branch is
-never submitted as a pull request; every change also lives on its own branch (against `origin/main`
-where it has been submitted upstream). Build with `~/dev-local/mail-build/build.sh <ref>`.
+Own build of Nextcloud Mail: upstream tag v5.12.6 plus the changes below, while they wait for
+review upstream. This branch is never submitted as a pull request; every change also lives on its
+own branch (against `main` where it has been submitted upstream).
 
-Numbers in the last column refer to the user's list `Nextcloud/Nextcloud-mail - improvements.md`.
+The installable package is attached to the matching release of this repository. It keeps the
+upstream version number, so Nextcloud replaces it with the next official Mail release from the app
+store; install the next own build instead if you want to keep these changes. Use it at your own
+risk and keep a copy of the `mail` app folder you replace.
+
+The last column refers to the item in our own wish list.
 
 ## In this build
 
@@ -35,9 +40,21 @@ Numbers in the last column refer to the user's list `Nextcloud/Nextcloud-mail - 
 
 ## Not in this build
 
-Nothing. The last two rows above were in 5.12.2-db, got lost when the build was rebuilt on 5.12.4
-and were brought back on 2026-10-16. Check this table against `git log v5.X.Y..vX.Y.Z-db` after
-every rebuild on a new upstream version.
+Nothing. Check this table against `git log vX.Y.Z..vX.Y.Z-db` after every rebuild on a new
+upstream version.
+
+## Install
+
+Download `mail-v5.12.6-db.tar.gz` from the release, then on the server:
+
+1. Make a copy of the current `apps/mail` or `custom_apps/mail` folder.
+2. Unpack the package next to that folder as the web server user, and swap the two folders.
+3. Run `occ upgrade`, and make browsers load the new scripts (they keep the old ones while the
+   version number stays the same): raise the theming cachebuster with
+   `occ config:app:set theming cachebuster --value=<current value + 1>`.
+
+The code integrity check will report the mail app as changed; that is expected for a build that is
+not signed by Nextcloud.
 
 ## Next base
 
