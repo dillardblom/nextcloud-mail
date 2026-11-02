@@ -43,6 +43,7 @@ The last column refers to the item in our own wish list.
 | In a thread, save or open the attachment of its own message (was: same attachment number of the selected message, e.g. an .eml instead of a PDF) | `fix/attachment-of-its-own-message` (upstream: `fix/attachment-save-own-message`) | PR #14007, open ("Save to Files" part; opening in office is own-build only) | 23 |
 | Archive several selected threads at once, each to the archive mailbox of its own account | `feat/archive-selection` | not submitted | 24 |
 | Play audio attachments in the message (player in the attachment, click plays or pauses) | `feat/play-audio-attachments` | not submitted | 25 |
+| Table-based HTML signatures keep their layout (table and cell attributes and styles, linked images, no figure or cell paragraph margins) | `fix/signature-html-formatting` | not submitted | – |
 
 ## Not in this build
 
