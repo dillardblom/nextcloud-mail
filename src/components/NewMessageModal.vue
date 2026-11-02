@@ -234,6 +234,8 @@ export default {
 			changed: false,
 			// Changes from filling in a reply or forward don't count until the user edits something
 			userEdited: false,
+			// A new message with nothing but its signature isn't worth a draft
+			composerHasOwnContent: true,
 			largerModal: false,
 			additionalTrapElements: [],
 			recipient: {
@@ -254,9 +256,12 @@ export default {
 	},
 
 	computed: {
-		/** Changed by the user, not only filled in for a reply or forward */
+		/**
+		 * Changed by the user, not only filled in for a reply or forward, and
+		 * holding more than the signature of a new message
+		 */
 		edited() {
-			return this.changed && this.userEdited
+			return this.changed && this.userEdited && this.composerHasOwnContent
 		},
 
 		...mapStores(useOutboxStore, useMainStore),
@@ -654,6 +659,7 @@ export default {
 			// Extract data to save drafts while the composer is not rendered.
 			// This is hacky but there is no other way for now.
 			this.cookedComposerData = this.$refs.composer.getMessageData()
+			this.composerHasOwnContent = this.$refs.composer.hasOwnContent()
 		},
 
 		async patchComposerData(data) {

@@ -460,6 +460,38 @@ describe('Composer', () => {
 		expect(insertSignature).toHaveBeenCalled()
 	})
 
+	it.each([
+		['nothing but the signature', false, '<p></p><div class="signature"><p>Jane Doe</p></div>', false],
+		['text of the user', false, '<p>Hello</p><div class="signature"><p>Jane Doe</p></div>', true],
+		['an existing draft cleared to the signature', true, '<div class="signature"><p>Jane Doe</p></div>', true],
+	])('saves a draft of a new message with %s: %s', (description, isDraft, body, saved) => {
+		const view = shallowMount(Composer, {
+			propsData: {
+				isFirstOpen: true,
+				isDraft,
+				hasUserEdits: true,
+				accounts: [
+					{
+						id: 123,
+						editorMode: 'richtext',
+						isUnified: false,
+						aliases: [],
+					},
+				],
+			},
+			mocks: {
+				$route,
+			},
+			store,
+			localVue,
+		})
+		view.vm.bodyVal = body
+
+		view.vm.saveDraft()
+
+		expect(view.emitted('draft') !== undefined).toBe(saved)
+	})
+
 	it('does not insert the signature when opening a draft', () => {
 		const view = shallowMount(Composer, {
 			propsData: {
