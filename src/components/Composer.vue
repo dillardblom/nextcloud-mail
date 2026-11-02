@@ -591,6 +591,7 @@ import { findRecipient } from '../service/AutocompleteService.js'
 import { savePreference } from '../service/PreferenceService.js'
 import { EDITOR_MODE_HTML, EDITOR_MODE_TEXT } from '../store/constants.js'
 import useMainStore from '../store/mainStore.js'
+import { isEmptyApartFromSignature } from '../util/draft.js'
 import { parseEmailList } from '../util/emailAddress.js'
 import { formatDateTime } from '../util/formatDateTime.js'
 import { containsImage, detect, html, toHtml, toPlain } from '../util/text.js'
@@ -1370,20 +1371,27 @@ export default {
 				return
 			}
 			const draftData = this.getMessageData()
-			if (draftData.subject === ''
-				&& draftData.body?.value === ''
-				&& draftData.cc.length === 0
-				&& draftData.bcc.length === 0
-				&& draftData.to.length === 0
-				&& draftData.sendAt === undefined) {
-				// this might happen after a call to reset()
-				// where the text input gets reset as well
-				// and fires an input event
+			if (!this.hasOwnContent()) {
+				// Only the signature (inserted for every new message), or nothing at
+				// all after a call to reset(), whose text input fires an input event
 				logger.debug('Nothing substantial to save, ignoring draft save')
 				return
 			}
 
 			this.$emit('draft', draftData)
+		},
+
+		/**
+		 * Whether the message holds anything worth a draft. A message with
+		 * nothing but the signature only counts when it is a draft already, so
+		 * clearing a saved draft is still saved.
+		 *
+		 * @return {boolean}
+		 */
+		hasOwnContent() {
+			return this.isDraft
+				|| this.draftSaved
+				|| !isEmptyApartFromSignature(this.getMessageData(), this.bodyVal)
 		},
 
 		insertSignature() {
