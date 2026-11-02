@@ -54,6 +54,12 @@ export default class ImageDowncastPlugin extends Plugin {
 				if ((item.is('element', 'figure') && item.hasClass('image')) || item.is('element', 'img')) {
 					this._mirrorResizedWidth(writer, item)
 				}
+				// Recipients don't have the editor's stylesheet, so a figure would
+				// get the browser's default margins (40px at the sides), which
+				// shifts images in a table layout such as a signature.
+				if (item.is('element', 'figure') && item.hasClass('image') && !item.hasStyle('margin')) {
+					writer.setStyle('margin', '0', item)
+				}
 			}
 		}, { priority: 'low' })
 	}
