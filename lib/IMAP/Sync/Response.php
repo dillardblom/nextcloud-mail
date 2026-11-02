@@ -22,13 +22,19 @@ final class Response implements JsonSerializable {
 	 * @param T[] $changedMessages
 	 * @param int[] $vanishedMessageUids
 	 * @param MailboxStats|null $stats
+	 * @param bool $moreNewMessages whether more new messages are left than this response holds
 	 */
 	public function __construct(
 		private array $newMessages,
 		private array $changedMessages,
 		private array $vanishedMessageUids,
 		private ?MailboxStats $stats = null,
+		private bool $moreNewMessages = false,
 	) {
+	}
+
+	public function hasMoreNewMessages(): bool {
+		return $this->moreNewMessages;
 	}
 
 	/**

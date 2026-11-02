@@ -41,7 +41,6 @@ use OCP\EventDispatcher\IEventDispatcher;
 use Psr\Log\LoggerInterface;
 use Throwable;
 use function array_chunk;
-use function array_filter;
 use function array_map;
 use function register_shutdown_function;
 use function sprintf;
@@ -363,6 +362,7 @@ class ImapToDbSynchronizer {
 	 *
 	 * @throws ServiceException
 	 * @throws UidValidityChangedException
+	 * @throws IncompleteSyncException if more new messages are left than one round fetches
 	 * @return bool whether there are new or vanished messages
 	 */
 	private function runPartialSync(
@@ -384,7 +384,11 @@ class ImapToDbSynchronizer {
 
 		$requestId = base64_encode(random_bytes(16));
 
+		$moreNewMessages = false;
 		if ($criteria & Horde_Imap_Client::SYNC_NEWMSGSUIDS) {
+			// Messages up to the highest cached UID are not fetched. Ideally there are none, but if there is an error
+			// during a consecutive chunk INSERT, or a round below stops early, the sync token isn't updated. In that
+			// case the same message(s) would be seen as *new* and therefore cause conflicts.
 			$response = $this->synchronizer->sync(
 				$client,
 				new Request(
@@ -397,19 +401,13 @@ class ImapToDbSynchronizer {
 				$hasQresync,
 				$logger,
 				Horde_Imap_Client::SYNC_NEWMSGSUIDS,
+				$this->dbMapper->findHighestUid($mailbox) ?? 0,
+				self::MAX_NEW_MESSAGES,
 			);
 			$perf->step('get new messages via Horde');
 
-			$highestKnownUid = $this->dbMapper->findHighestUid($mailbox);
-			if ($highestKnownUid === null) {
-				// Everything is relevant
-				$newMessages = $response->getNewMessages();
-			} else {
-				// Filter out anything that is already in the DB. Ideally this never happens, but if there is an error
-				// during a consecutive chunk INSERT, the sync token won't be updated. In that case the same message(s)
-				// will be seen as *new* and therefore cause conflicts.
-				$newMessages = array_filter($response->getNewMessages(), static fn (IMAPMessage $imapMessage) => $imapMessage->getUid() > $highestKnownUid);
-			}
+			$newMessages = $response->getNewMessages();
+			$moreNewMessages = $response->hasMoreNewMessages();
 
 			$importantTag = null;
 			try {
@@ -447,7 +445,11 @@ class ImapToDbSynchronizer {
 			}
 			$perf->step('persist new messages');
 
-			$mailbox->setSyncNewToken($client->getSyncToken($mailbox->getName()));
+			// With new messages left, the token stays where it is, so the next round picks up after the
+			// highest cached UID
+			if (!$moreNewMessages) {
+				$mailbox->setSyncNewToken($client->getSyncToken($mailbox->getName()));
+			}
 			$newOrVanished = $newMessages !== [];
 		}
 		if ($criteria & Horde_Imap_Client::SYNC_FLAGSUIDS) {
@@ -513,6 +515,11 @@ class ImapToDbSynchronizer {
 		}
 		$this->mailboxMapper->update($mailbox);
 		$perf->end();
+
+		if ($moreNewMessages) {
+			// Like the initial sync: the caller retries, and each round fetches the next batch
+			throw new IncompleteSyncException("Partial sync is not complete for {$account->getId()}:{$mailbox->getName()}, more new messages are left.");
+		}
 
 		return $newOrVanished;
 	}

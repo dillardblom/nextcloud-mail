@@ -19,8 +19,14 @@ use OCA\Mail\Exception\MailboxDoesNotSupportModSequencesException;
 use OCA\Mail\Exception\UidValidityChangedException;
 use OCA\Mail\IMAP\MessageMapper;
 use Psr\Log\LoggerInterface;
+use function array_filter;
+use function array_map;
 use function array_merge;
+use function array_slice;
+use function array_values;
+use function count;
 use function OCA\Mail\chunk_uid_sequence;
+use function sort;
 
 class Synchronizer {
 	/**
@@ -41,6 +47,10 @@ class Synchronizer {
 	}
 
 	/**
+	 * @param int $highestKnownUid new messages up to this UID are already cached and not fetched again
+	 * @param int|null $maxNewMessages fetch at most this many new messages, the lowest UIDs first;
+	 *                                 the response then reports that more new messages are left
+	 *
 	 * @return Response
 	 * @throws Horde_Imap_Client_Exception
 	 * @throws Horde_Imap_Client_Exception_Sync
@@ -52,7 +62,9 @@ class Synchronizer {
 		string $userId,
 		bool $hasQresync, // TODO: query client directly, but could be unsafe because login has to happen prior
 		LoggerInterface $logger,
-		int $criteria = Horde_Imap_Client::SYNC_NEWMSGSUIDS | Horde_Imap_Client::SYNC_FLAGSUIDS | Horde_Imap_Client::SYNC_VANISHEDUIDS): Response {
+		int $criteria = Horde_Imap_Client::SYNC_NEWMSGSUIDS | Horde_Imap_Client::SYNC_FLAGSUIDS | Horde_Imap_Client::SYNC_VANISHEDUIDS,
+		int $highestKnownUid = 0,
+		?int $maxNewMessages = null): Response {
 		// Return cached response from last full sync when QRESYNC is enabled
 		if ($hasQresync && $this->response !== null && $request->getId() === $this->requestId) {
 			$logger->debug('Reusing cached sync response');
@@ -79,6 +91,22 @@ class Synchronizer {
 			throw $e;
 		}
 
+		// Messages that are already cached do not have to be fetched again. A
+		// sync token that is far ahead of the cache would otherwise make us
+		// fetch every message after it in one go, so the number of new messages
+		// per round can be capped like the initial sync does.
+		$newUids = array_values(array_filter(
+			array_map('intval', $newUids instanceof Horde_Imap_Client_Ids ? $newUids->ids : $newUids),
+			static fn (int $uid): bool => $uid > $highestKnownUid,
+		));
+		sort($newUids);
+		$moreNewMessages = false;
+		if ($maxNewMessages !== null && count($newUids) > $maxNewMessages) {
+			$logger->debug('Fetching ' . $maxNewMessages . ' of ' . count($newUids) . ' new messages, the rest follows in a later sync');
+			$newUids = array_slice($newUids, 0, $maxNewMessages);
+			$moreNewMessages = true;
+		}
+
 		$logger->debug('Fetching new and changed messages after sync');
 		$newMessages = $this->messageMapper->findByIds($imapClient, $request->getMailbox(), $newUids, $userId);
 		$nNew = count($newMessages);
@@ -89,7 +117,7 @@ class Synchronizer {
 		$vanishedMessageUids = $vanishedUids;
 
 		$this->requestId = $request->getId();
-		$this->response = new Response($newMessages, $changedMessages, $vanishedMessageUids, null);
+		$this->response = new Response($newMessages, $changedMessages, $vanishedMessageUids, null, $moreNewMessages);
 		return $this->response;
 	}
 

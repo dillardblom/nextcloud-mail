@@ -122,4 +122,45 @@ class SynchronizerTest extends TestCase {
 
 		$this->assertEquals($expected, $response);
 	}
+
+	/**
+	 * @dataProvider newMessagesBoundData
+	 */
+	public function testSyncFetchesNewMessagesAfterTheCacheWithinTheBound(?int $maxNewMessages, array $expectedUids, bool $expectedMore): void {
+		$imapClient = $this->createMock(Horde_Imap_Client_Base::class);
+		$request = new Request('abcdef', 'inbox', '123456', [1, 2, 3, 4]);
+		$hordeSync = $this->createMock(Horde_Imap_Client_Data_Sync::class);
+		$imapClient->expects($this->once())
+			->method('sync')
+			->willReturn($hordeSync);
+		// The token is behind the cache: 3 and 4 are cached already
+		$hordeSync->method('__get')
+			->with('newmsgsuids')
+			->willReturn(new Horde_Imap_Client_Ids([12, 3, 10, 4, 11]));
+		$this->mapper->expects($this->exactly(2))
+			->method('findByIds')
+			->willReturnCallback(static fn ($client, string $mailbox, array|Horde_Imap_Client_Ids $ids) => $ids instanceof Horde_Imap_Client_Ids ? $ids->ids : $ids);
+
+		$response = $this->synchronizer->sync(
+			$imapClient,
+			$request,
+			'user',
+			false,
+			$this->logger,
+			Horde_Imap_Client::SYNC_NEWMSGSUIDS,
+			4,
+			$maxNewMessages,
+		);
+
+		$this->assertSame($expectedUids, $response->getNewMessages());
+		$this->assertSame($expectedMore, $response->hasMoreNewMessages());
+	}
+
+	public static function newMessagesBoundData(): array {
+		return [
+			'no bound' => [null, [10, 11, 12], false],
+			'bound not reached' => [3, [10, 11, 12], false],
+			'bound reached, lowest UIDs first' => [2, [10, 11], true],
+		];
+	}
 }

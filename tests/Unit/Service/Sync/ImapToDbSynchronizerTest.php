@@ -10,6 +10,7 @@ declare(strict_types=1);
 namespace OCA\Mail\Tests\Unit\Service\Sync;
 
 use ChristophWurst\Nextcloud\Testing\TestCase;
+use Horde_Imap_Client;
 use Horde_Imap_Client_Data_Capability_Imap;
 use Horde_Imap_Client_Socket;
 use OCA\Mail\Account;
@@ -19,7 +20,9 @@ use OCA\Mail\Db\MailboxMapper;
 use OCA\Mail\Db\MessageMapper as DatabaseMessageMapper;
 use OCA\Mail\Db\TagMapper;
 use OCA\Mail\Events\SynchronizationEvent;
+use OCA\Mail\Exception\IncompleteSyncException;
 use OCA\Mail\IMAP\MessageMapper as ImapMessageMapper;
+use OCA\Mail\IMAP\Sync\Response;
 use OCA\Mail\IMAP\Sync\Synchronizer;
 use OCA\Mail\Protocol\ProtocolFactory;
 use OCA\Mail\Service\Classification\NewMessagesClassifier;
@@ -38,6 +41,7 @@ class ImapToDbSynchronizerTest extends TestCase {
 	private MailboxMapper&MockObject $mailboxMapper;
 	private IEventDispatcher&MockObject $dispatcher;
 	private PerformanceLogger&MockObject $performanceLogger;
+	private Synchronizer&MockObject $imapSynchronizer;
 	private ImapToDbSynchronizer $synchronizer;
 
 	protected function setUp(): void {
@@ -50,13 +54,14 @@ class ImapToDbSynchronizerTest extends TestCase {
 		$this->performanceLogger = $this->createMock(PerformanceLogger::class);
 		$this->performanceLogger->method('startWithLogger')
 			->willReturn($this->createStub(PerformanceLoggerTask::class));
+		$this->imapSynchronizer = $this->createMock(Synchronizer::class);
 		$this->synchronizer = new ImapToDbSynchronizer(
 			$this->dbMapper,
 			$this->protocolFactory,
 			$this->imapMapper,
 			$this->mailboxMapper,
 			$this->createStub(DatabaseMessageMapper::class),
-			$this->createStub(Synchronizer::class),
+			$this->imapSynchronizer,
 			$this->dispatcher,
 			$this->performanceLogger,
 			$this->createStub(LoggerInterface::class),
@@ -109,5 +114,64 @@ class ImapToDbSynchronizerTest extends TestCase {
 			$mailbox,
 			$this->createStub(LoggerInterface::class),
 		);
+	}
+
+	/**
+	 * @dataProvider partialSyncBoundData
+	 */
+	public function testPartialSyncFetchesNewMessagesInBoundedRounds(bool $moreNewMessages, string $expectedToken): void {
+		$mailAccount = new MailAccount();
+		$mailAccount->setId(1);
+		$mailAccount->setUserId('user');
+		$account = new Account($mailAccount);
+		$mailbox = new Mailbox();
+		$mailbox->setId(100);
+		$mailbox->setName('INBOX');
+		$mailbox->setAccountId(1);
+		$mailbox->setSelectable(true);
+		$mailbox->setSyncNewToken('old');
+		$mailbox->setSyncChangedToken('old');
+		$mailbox->setSyncVanishedToken('old');
+		$capability = $this->createMock(Horde_Imap_Client_Data_Capability_Imap::class);
+		$capability->method('isEnabled')->with('QRESYNC')->willReturn(false);
+		$client = $this->createMock(Horde_Imap_Client_Socket::class);
+		$client->method('__get')->with('capability')->willReturn($capability);
+		$client->method('getSyncToken')->willReturn('new');
+		$this->dbMapper->method('findAllUids')->willReturn([3, 4]);
+		$this->dbMapper->method('findHighestUid')->willReturn(4);
+		$this->imapSynchronizer->expects($this->once())
+			->method('sync')
+			->with(
+				$client,
+				$this->anything(),
+				'user',
+				false,
+				$this->anything(),
+				Horde_Imap_Client::SYNC_NEWMSGSUIDS,
+				4,
+				ImapToDbSynchronizer::MAX_NEW_MESSAGES,
+			)
+			->willReturn(new Response([], [], [], null, $moreNewMessages));
+		$this->mailboxMapper->expects($this->once())
+			->method('update')
+			->with($this->callback(fn (Mailbox $mb) => $mb->getSyncNewToken() === $expectedToken));
+		if ($moreNewMessages) {
+			$this->expectException(IncompleteSyncException::class);
+		}
+
+		$this->synchronizer->sync(
+			$account,
+			$client,
+			$mailbox,
+			$this->createStub(LoggerInterface::class),
+			Horde_Imap_Client::SYNC_NEWMSGSUIDS,
+		);
+	}
+
+	public static function partialSyncBoundData(): array {
+		return [
+			'all new messages fetched' => [false, 'new'],
+			'more new messages left' => [true, 'old'],
+		];
 	}
 }
