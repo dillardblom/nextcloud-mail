@@ -28,6 +28,7 @@ The last column refers to the item in our own wish list.
 | Sync: at most one page of new messages when the client knows none (fixed the sync OOM loop) | `fix/sync-without-known-ids` | PR #13823, open | – |
 | Show the own build version in About | – (build only) | never | – |
 | No draft of a reply or forward the user didn't edit | `fix/no-draft-without-edits` | not submitted (main port needed) | 9 |
+| No draft of a new message with nothing but the signature (no text, subject, recipients or attachments) | `fix/no-draft-signature-only` | not submitted | 9 |
 | Reply actions named after what they do ("Reply all" / "Reply") | `fix/no-draft-without-edits` | not submitted | 11 |
 | Reply from the message list again | `feat/list-reply` | not submitted | 16 |
 | Type to find an account or alias in the From field | `feat/searchable-from` | not submitted | 8 |
