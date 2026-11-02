@@ -716,6 +716,14 @@ https://github.com/ckeditor/ckeditor5/issues/1142
 	padding-inline-start: 40px;
 }
 
+/* Show a table layout (e.g. a signature) as it is sent: an image in a cell
+   goes out without the editor's figure margins */
+.ck-content td .image,
+.ck-content th .image {
+	margin: 0;
+	min-width: 0;
+}
+
 .ck-read-only {
 	color: var(--color-main-text) !important;
 	background-color: var(--color-main-background) !important;

@@ -296,18 +296,21 @@ class PageControllerTest extends TestCase {
 				'1.2.3',
 				'cron',
 			);
-		$this->appConfig->expects($this->exactly(4))
+		$this->appConfig->expects($this->exactly(5))
 			->method('getValueString')
 			->withConsecutive(
 				[Application::APP_ID, ConfigLexicon::LAYOUT_MESSAGE_VIEW, 'threaded'],
 				[Application::APP_ID, ConfigLexicon::GOOGLE_OAUTH_CLIENT_ID],
 				[Application::APP_ID, ConfigLexicon::MICROSOFT_OAUTH_CLIENT_ID],
 				[Application::APP_ID, ConfigLexicon::MICROSOFT_OAUTH_TENANT_ID, 'common'],
+				[Application::APP_ID, ConfigLexicon::COMPOSER_IMAGE_DOMAINS],
 			)->willReturnOnConsecutiveCalls(
 				'threaded',
 				'',
 				'',
 				'',
+				// Only plain host names are allowed, no scheme, path or wildcard
+				'Signatures.example.com, https://evil.example/x *.example.org,localhost',
 			);
 		$this->appConfig->expects($this->once())
 			->method('getValueBool')
@@ -403,6 +406,7 @@ class PageControllerTest extends TestCase {
 		$expected = new TemplateResponse($this->appName, 'index');
 		$csp = new ContentSecurityPolicy();
 		$csp->addAllowedFrameDomain('\'self\'');
+		$csp->addAllowedImageDomain('https://signatures.example.com');
 		$expected->setContentSecurityPolicy($csp);
 
 		$response = $this->controller->index();

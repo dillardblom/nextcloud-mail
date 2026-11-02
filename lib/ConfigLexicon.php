@@ -36,6 +36,7 @@ class ConfigLexicon implements ILexicon {
 	public const MICROSOFT_OAUTH_TENANT_ID = 'microsoft_oauth_tenant_id';
 	public const ANTISPAM_REPORTING_SPAM = 'antispam_reporting_spam';
 	public const ANTISPAM_REPORTING_HAM = 'antispam_reporting_ham';
+	public const COMPOSER_IMAGE_DOMAINS = 'composer_image_domains';
 
 	#[\Override]
 	public function getStrictness(): Strictness {
@@ -112,6 +113,13 @@ class ConfigLexicon implements ILexicon {
 				self::ANTISPAM_REPORTING_HAM,
 				ValueType::STRING,
 				definition: 'Email address ham (not spam) reports are forwarded to',
+			),
+			new Entry(
+				self::COMPOSER_IMAGE_DOMAINS,
+				ValueType::STRING,
+				defaultRaw: '',
+				definition: 'Host names (comma separated) the composer may load images from over https, e.g. of a signature generator',
+				note: 'Received messages are not affected; they load remote images through the proxy',
 			),
 		];
 	}
