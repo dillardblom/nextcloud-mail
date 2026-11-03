@@ -104,15 +104,23 @@ class SyncService {
 				!$partialOnly,
 			);
 
+		$query = $filter === null ? null : $this->filterStringParser->parse($filter);
 		if (!$partialOnly) {
 			// The initial sync fills the cache of a mailbox the client has not
 			// loaded yet; the client loads the first page from the message list
 			// right after. Returning the cache as new messages here would send
-			// every message of the mailbox through the preview enhancer.
-			return new Response([], [], [], $mailbox->getStats());
+			// every message of the mailbox through the preview enhancer. Messages
+			// the client still shows (e.g. after a cache reset) are reconciled.
+			[$changed, $vanished] = $this->getKnownMessageChanges(
+				$account,
+				$mailbox,
+				$knownIds ?? [],
+				$sortOrder,
+				$query
+			);
+			return new Response([], $changed, $vanished, $mailbox->getStats());
 		}
 
-		$query = $filter === null ? null : $this->filterStringParser->parse($filter);
 		return $this->getDatabaseSyncChanges(
 			$account,
 			$mailbox,
@@ -150,8 +158,33 @@ class SyncService {
 		}
 		$new = $this->messageMapper->findByMailboxAndIds($mailbox, $account->getUserId(), $newIds);
 
+		[$changed, $vanished] = $this->getKnownMessageChanges($account, $mailbox, $knownIds, $sortOrder, $query);
+
+		return new Response(
+			$this->previewEnhancer->process($account, $mailbox, $new),
+			$changed,
+			$vanished,
+			$mailbox->getStats()
+		);
+	}
+
+	/**
+	 * @param int[] $knownIds
+	 *
+	 * @return array{0: Message[], 1: int[]} the known messages that still exist, and the ids of those that vanished
+	 */
+	private function getKnownMessageChanges(Account $account,
+		Mailbox $mailbox,
+		array $knownIds,
+		string $sortOrder,
+		?SearchQuery $query): array {
+		if ($knownIds === []) {
+			return [[], []];
+		}
+
 		// TODO: $changed = $this->messageMapper->findChanged($account, $mailbox, $uids);
 		if ($query !== null) {
+			$order = $sortOrder === 'oldest' ? IMailSearch::ORDER_OLDEST_FIRST : IMailSearch::ORDER_NEWEST_FIRST;
 			$changedIds = $this->messageMapper->findIdsByQuery($mailbox, $query, $order, null, null, $knownIds);
 		} else {
 			$changedIds = $knownIds;
@@ -161,11 +194,6 @@ class SyncService {
 		$stillKnownIds = array_map(static fn (Message $msg) => $msg->getId(), $changed);
 		$vanished = array_values(array_diff($knownIds, $stillKnownIds));
 
-		return new Response(
-			$this->previewEnhancer->process($account, $mailbox, $new),
-			$changed,
-			$vanished,
-			$mailbox->getStats()
-		);
+		return [$changed, $vanished];
 	}
 }

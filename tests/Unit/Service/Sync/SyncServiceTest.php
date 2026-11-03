@@ -13,6 +13,7 @@ use OCA\Mail\Account;
 use OCA\Mail\Contracts\IMailboxConnector;
 use OCA\Mail\Contracts\IMessageConnector;
 use OCA\Mail\Db\Mailbox;
+use OCA\Mail\Db\Message;
 use OCA\Mail\Db\MessageMapper;
 use OCA\Mail\Exception\MailboxNotCachedException;
 use OCA\Mail\IMAP\MailboxStats;
@@ -61,12 +62,15 @@ final class SyncServiceTest extends TestCase {
 		$this->protocolFactory->method('messageConnector')
 			->willReturn($this->messageConnector);
 
+		$previewEnhancer = $this->createStub(PreviewEnhancer::class);
+		$previewEnhancer->method('process')->willReturnArgument(2);
+
 		$this->syncService = new SyncService(
 			$this->protocolFactory,
 			$this->synchronizer,
 			$this->createStub(FilterStringParser::class),
 			$this->messageMapper,
-			$this->createStub(PreviewEnhancer::class),
+			$previewEnhancer,
 			$this->createStub(\Psr\Log\LoggerInterface::class),
 			$this->mailboxSync
 		);
@@ -163,6 +167,40 @@ final class SyncServiceTest extends TestCase {
 		$this->assertEquals(new Response([], [], [], new MailboxStats(33000, 24000, null)), $response);
 	}
 
+	public function testInitialSyncReconcilesKnownMessages(): void {
+		$account = $this->createMock(Account::class);
+		$account->method('getUserId')->willReturn('user');
+		$mailbox = new Mailbox();
+		$mailbox->setMessages(33000);
+		$mailbox->setUnseen(24000);
+		$stillThere = new Message();
+		$stillThere->setId(1);
+		$this->messageConnector->expects($this->once())
+			->method('syncMailbox')
+			->willReturn(new \OCA\Mail\Protocol\SyncResult());
+		$this->messageMapper->expects($this->never())
+			->method('findAllIds');
+		$this->messageMapper->expects($this->never())
+			->method('findNewIds');
+		$this->messageMapper->expects($this->once())
+			->method('findByMailboxAndIds')
+			->with($mailbox, 'user', [1, 2])
+			->willReturn([$stillThere]);
+
+		$response = $this->syncService->syncMailbox(
+			$account,
+			$mailbox,
+			0,
+			false,
+			null,
+			[1, 2]
+		);
+
+		$this->assertSame([], $response->getNewMessages());
+		$this->assertSame([$stillThere], $response->getChangedMessages());
+		$this->assertSame([2], $response->getVanishedMessageUids());
+	}
+
 	public function testPartialSyncReadsTheCache(): void {
 		$account = $this->createMock(Account::class);
 		$account->method('getUserId')->willReturn('user');
@@ -172,6 +210,8 @@ final class SyncServiceTest extends TestCase {
 		$mailbox->setSyncNewToken('token');
 		$mailbox->setSyncChangedToken('token');
 		$mailbox->setSyncVanishedToken('token');
+		$newMessage = new Message();
+		$newMessage->setId(3);
 		$this->messageConnector->expects($this->once())
 			->method('syncMailbox')
 			->willReturn(new \OCA\Mail\Protocol\SyncResult());
@@ -180,9 +220,9 @@ final class SyncServiceTest extends TestCase {
 			->with($mailbox, [1, 2], null, 'DESC')
 			->willReturn([3]);
 		$this->messageMapper->method('findByMailboxAndIds')
-			->willReturn([]);
+			->willReturnCallback(static fn (Mailbox $mailbox, string $userId, array $ids): array => $ids === [3] ? [$newMessage] : []);
 
-		$this->syncService->syncMailbox(
+		$response = $this->syncService->syncMailbox(
 			$account,
 			$mailbox,
 			0,
@@ -190,5 +230,7 @@ final class SyncServiceTest extends TestCase {
 			null,
 			[1, 2]
 		);
+
+		$this->assertSame([$newMessage], $response->getNewMessages());
 	}
 }
