@@ -698,6 +698,18 @@ describe('Thread', () => {
 			expect(store.startComposerSession).not.toHaveBeenCalled()
 		})
 
+		it('lets a plain reply key be typed in the open composer', async () => {
+			store.showMessageComposer = true
+			store.preferences = { ...store.preferences, shortcuts: JSON.stringify({ reply: 'r' }) }
+			const view = mountThread()
+			const event = { ...replyShortcut(document.createElement('div')), ctrlKey: false }
+
+			await view.vm.handleKeyDown(event)
+
+			expect(event.preventDefault).not.toHaveBeenCalled()
+			expect(store.startComposerSession).not.toHaveBeenCalled()
+		})
+
 		it('ignores the repeats of a held shortcut', async () => {
 			const view = mountThread()
 			const event = { ...replyShortcut(), repeat: true }

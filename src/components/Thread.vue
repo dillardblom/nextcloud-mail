@@ -339,9 +339,12 @@ export default {
 		},
 
 		replyViaShortcut(event) {
-			// Reloading would throw away the message being written
 			if (this.isComposing()) {
-				event.preventDefault()
+				// A plain key (e.g. "r") is a letter being typed in the message. A combination
+				// (Ctrl/Cmd+R) would reload the page and throw away the message being written.
+				if (event.ctrlKey || event.metaKey) {
+					event.preventDefault()
+				}
 				return
 			}
 			if (isEditableTarget(event.target) || isDialogOpen()) {
