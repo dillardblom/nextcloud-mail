@@ -153,8 +153,8 @@ class Html {
 		// Append target="_blank" to all link (a) elements
 		$config->set('HTML.TargetBlank', true);
 
-		// allow cid, http and ftp
-		$config->set('URI.AllowedSchemes', ['cid' => true, 'http' => true, 'https' => true, 'ftp' => true, 'mailto' => true]);
+		// allow cid, http, ftp, mailto and tel (phone numbers, e.g. in signatures)
+		$config->set('URI.AllowedSchemes', ['cid' => true, 'http' => true, 'https' => true, 'ftp' => true, 'mailto' => true, 'tel' => true]);
 		$config->set('URI.Host', Util::getServerHostName());
 
 		$config->set('Filter.ExtractStyleBlocks', true);

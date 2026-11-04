@@ -271,6 +271,28 @@ class HtmlTest extends TestCase {
 		$this->assertStringContainsString('id="target"', $result);
 	}
 
+	public function testSanitizeHtmlMailBodyKeepsTelLinks(): void {
+		$urlGenerator = $this->createStub(IURLGenerator::class);
+		$request = $this->createStub(IRequest::class);
+		$hmacGenerator = $this->createStub(ProxyHmacGenerator::class);
+
+		$html = new Html($urlGenerator, $request, $hmacGenerator);
+		$result = $html->sanitizeHtmlMailBody(42, '<a href="tel:+31201234567">+31 20 123 4567</a>', []);
+
+		$this->assertStringContainsString('href="tel:+31201234567"', $result);
+	}
+
+	public function testSanitizeHtmlMailBodyDropsUnknownSchemes(): void {
+		$urlGenerator = $this->createStub(IURLGenerator::class);
+		$request = $this->createStub(IRequest::class);
+		$hmacGenerator = $this->createStub(ProxyHmacGenerator::class);
+
+		$html = new Html($urlGenerator, $request, $hmacGenerator);
+		$result = $html->sanitizeHtmlMailBody(42, '<a href="javascript:alert(1)">click</a>', []);
+
+		$this->assertStringNotContainsString('javascript:', $result);
+	}
+
 	public function testSanitizeHtmlMailBodyPreservesFigure(): void {
 		$urlGenerator = $this->createStub(IURLGenerator::class);
 		$urlGenerator->method('linkToRoute')->willReturn('/apps/mail/proxy?id=42&hmac=abc');
