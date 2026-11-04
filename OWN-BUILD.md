@@ -47,6 +47,7 @@ The last column refers to the item in our own wish list.
 | Table-based HTML signatures keep their layout (table and cell attributes and styles, linked images, no figure or cell paragraph margins) | `fix/signature-html-formatting` | not submitted | – |
 | Composer shows images from hosts the admin allows (setting `composer_image_domains`, see below) | `fix/signature-html-formatting` | not submitted | – |
 | Phone number links (`tel:`) in received HTML messages stay clickable | `fix/html-tel-links` (against `main`) | not submitted | – |
+| Sync: no message skipped for good when it arrives during a sync (token taken before the search; new messages filtered by UID, so a missing one below the highest cached UID is synced too) | `fix/sync-token-before-search` (against `main`) | not submitted | – |
 
 ## Settings
 
