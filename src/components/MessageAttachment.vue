@@ -4,7 +4,7 @@
 -->
 
 <template>
-	<div class="attachment" :class="{ 'message-attachment--can-preview': canPreview || canOpenInOffice || isAudio }">
+	<div class="attachment" :class="{ 'message-attachment--can-preview': canPreview || canOpenInApp || isAudio }">
 		<div class="mail-attachment-img--wrapper" @click="onClick">
 			<img
 				v-if="isImage"
@@ -50,7 +50,7 @@
 					{{ t('mail', 'Download attachment') }}
 				</NcActionButton>
 				<NcActionButton
-					v-if="canOpenInOffice"
+					v-if="canOpenInApp"
 					class="attachment-open-in-office"
 					:disabled="openingInOffice"
 					:close-after-click="true"
@@ -59,7 +59,7 @@
 						<IconOpenInOffice v-if="!openingInOffice" :size="20" />
 						<NcLoadingIcon v-else :size="20" />
 					</template>
-					{{ t('mail', 'Open in Office') }}
+					{{ canOpenInOffice ? t('mail', 'Open in Office') : t('mail', 'Open in Text') }}
 				</NcActionButton>
 				<NcActionButton
 					class="attachment-save-to-cloud"
@@ -106,8 +106,8 @@ import Logger from '../logger.js'
 import { downloadAttachment, saveAttachmentForViewing, saveAttachmentToFiles } from '../service/AttachmentService.js'
 import { getUserCalendars, importCalendarEvent } from '../service/DAVService.js'
 import { pickFolder } from '../util/filePicker.js'
-import { isOfficeAttachment } from '../util/officeAttachment.js'
-import { officeUrl } from '../util/officeUrl.js'
+import { isOfficeAttachment, isTextAttachment } from '../util/officeAttachment.js'
+import { fileUrl, officeUrl } from '../util/officeUrl.js'
 
 export default {
 	name: 'MessageAttachment',
@@ -217,6 +217,14 @@ export default {
 			return isOfficeAttachment(this.mime, this.fileName, Object.keys(window.OC?.appswebroots ?? {}))
 		},
 
+		canOpenInText() {
+			return !this.canOpenInOffice && isTextAttachment(this.fileName, Object.keys(window.OC?.appswebroots ?? {}))
+		},
+
+		canOpenInApp() {
+			return this.canOpenInOffice || this.canOpenInText
+		},
+
 		/** Audio the browser plays; senders often label it application/octet-stream, so the extension counts too */
 		isAudio() {
 			if (/^audio\//.test(this.mime ?? '')) {
@@ -305,7 +313,7 @@ export default {
 				}
 				return
 			}
-			if ((!this.canPreview && this.canOpenInOffice) || this.isPdfForOffice) {
+			if ((!this.canPreview && this.canOpenInApp) || this.isPdfForOffice) {
 				this.openInOffice()
 				return
 			}
@@ -322,7 +330,9 @@ export default {
 			const tab = window.open('', '_blank')
 			try {
 				const file = await saveAttachmentForViewing(this.messageId, this.id, '/' + t('mail', 'Mail attachments'))
-				const url = officeUrl(file.fileId, Object.keys(window.OC?.appswebroots ?? {}))
+				const url = this.canOpenInText
+					? fileUrl(file.fileId)
+					: officeUrl(file.fileId, Object.keys(window.OC?.appswebroots ?? {}))
 				if (tab) {
 					tab.location = url
 				} else {

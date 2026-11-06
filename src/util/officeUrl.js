@@ -24,5 +24,15 @@ export function officeUrl(fileId, enabledApps) {
 	if (enabledApps.includes('richdocuments')) {
 		return generateUrl('/apps/richdocuments/index?fileId={fileId}', { fileId })
 	}
+	return fileUrl(fileId)
+}
+
+/**
+ * The file in Files, which opens it in the default app for its type.
+ *
+ * @param {number} fileId the file
+ * @return {string} the URL
+ */
+export function fileUrl(fileId) {
 	return generateUrl('/f/{fileId}', { fileId })
 }

@@ -11,6 +11,7 @@ const OFFICE_EXTENSION = /\.(docx?|docm|dotx?|dotm|odt|ott|rtf|xlsx?|xlsm|xltx?|
 // Nextcloud Office has no plain text editor, and text/plain alone says nothing about the file
 // (a .log or .json is text/plain too, and their editors refuse those), so go by the extension.
 const ONLYOFFICE_EXTENSION = /\.(txt|md|tsv)$/i
+const TEXT_EXTENSION = /\.(log|json|xml)$/i
 
 /**
  * Whether an attachment opens in the enabled office app. Mail clients often send office files as
@@ -30,4 +31,16 @@ export function isOfficeAttachment(mime, fileName, enabledApps) {
 	}
 	return ONLYOFFICE_APPS.some((app) => enabledApps.includes(app))
 		&& ONLYOFFICE_EXTENSION.test(fileName ?? '')
+}
+
+/**
+ * Whether an attachment opens in the Text app: plain text files that are not office documents.
+ * Scripts and web pages stay out on purpose, those are downloaded.
+ *
+ * @param {string|null|undefined} fileName the name of the attachment
+ * @param {string[]} enabledApps ids of the enabled apps
+ * @return {boolean} whether it can be opened in the Text app
+ */
+export function isTextAttachment(fileName, enabledApps) {
+	return enabledApps.includes('text') && TEXT_EXTENSION.test(fileName ?? '')
 }
