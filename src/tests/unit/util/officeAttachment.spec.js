@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
-import { isOfficeAttachment } from '../../../util/officeAttachment.js'
+import { isOfficeAttachment, isTextAttachment } from '../../../util/officeAttachment.js'
 
 describe('isOfficeAttachment', () => {
 	it.each([
@@ -51,5 +51,19 @@ describe('isOfficeAttachment', () => {
 	it('needs an enabled office app', () => {
 		expect(isOfficeAttachment('text/csv', 'file.csv', ['mail', 'viewer'])).toBe(false)
 		expect(isOfficeAttachment('text/plain', 'notes.txt', [])).toBe(false)
+	})
+})
+
+describe('isTextAttachment', () => {
+	it.each(['server.log', 'data.json', 'feed.XML'])('opens %s in Text', (fileName) => {
+		expect(isTextAttachment(fileName, ['text'])).toBe(true)
+	})
+
+	it.each(['page.html', 'script.php', 'run.sh', 'notes.txt', 'noextension', null, undefined])('does not open %s in Text', (fileName) => {
+		expect(isTextAttachment(fileName, ['text'])).toBe(false)
+	})
+
+	it('needs the Text app', () => {
+		expect(isTextAttachment('server.log', ['eurooffice'])).toBe(false)
 	})
 })

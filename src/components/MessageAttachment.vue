@@ -4,7 +4,7 @@
 -->
 
 <template>
-	<div class="attachment" :class="{ 'message-attachment--can-preview': canPreview || canOpenInOffice }">
+	<div class="attachment" :class="{ 'message-attachment--can-preview': canPreview || canOpenInApp }">
 		<div class="mail-attachment-img--wrapper" @click="onClick">
 			<img
 				v-if="isImage"
@@ -42,7 +42,7 @@
 					{{ t('mail', 'Download attachment') }}
 				</NcActionButton>
 				<NcActionButton
-					v-if="canOpenInOffice"
+					v-if="canOpenInApp"
 					class="attachment-open-in-office"
 					:disabled="openingInOffice"
 					:close-after-click="true"
@@ -51,7 +51,7 @@
 						<IconOpenInOffice v-if="!openingInOffice" :size="20" />
 						<NcLoadingIcon v-else :size="20" />
 					</template>
-					{{ t('mail', 'Open in Office') }}
+					{{ canOpenInOffice ? t('mail', 'Open in Office') : t('mail', 'Open in Text') }}
 				</NcActionButton>
 				<NcActionButton
 					class="attachment-save-to-cloud"
@@ -98,8 +98,8 @@ import Logger from '../logger.js'
 import { downloadAttachment, saveAttachmentForViewing, saveAttachmentToFiles } from '../service/AttachmentService.js'
 import { getUserCalendars, importCalendarEvent } from '../service/DAVService.js'
 import { pickFolder } from '../util/filePicker.js'
-import { isOfficeAttachment } from '../util/officeAttachment.js'
-import { officeUrl } from '../util/officeUrl.js'
+import { isOfficeAttachment, isTextAttachment } from '../util/officeAttachment.js'
+import { fileUrl, officeUrl } from '../util/officeUrl.js'
 
 export default {
 	name: 'MessageAttachment',
@@ -200,6 +200,14 @@ export default {
 			return isOfficeAttachment(this.mime, this.fileName, Object.keys(window.OC?.appswebroots ?? {}))
 		},
 
+		canOpenInText() {
+			return !this.canOpenInOffice && isTextAttachment(this.fileName, Object.keys(window.OC?.appswebroots ?? {}))
+		},
+
+		canOpenInApp() {
+			return this.canOpenInOffice || this.canOpenInText
+		},
+
 		/**
 		 * A PDF while Euro-Office or ONLYOFFICE is enabled: they take over the PDF view of the
 		 * Viewer, which then fails on an attachment that is not a file yet ("FileId is empty").
@@ -270,7 +278,7 @@ export default {
 		 * @param {MouseEvent} event the click
 		 */
 		onClick(event) {
-			if ((!this.canPreview && this.canOpenInOffice) || this.isPdfForOffice) {
+			if ((!this.canPreview && this.canOpenInApp) || this.isPdfForOffice) {
 				this.openInOffice()
 				return
 			}
@@ -287,7 +295,9 @@ export default {
 			const tab = window.open('', '_blank')
 			try {
 				const file = await saveAttachmentForViewing(this.$route.params.threadId, this.id, '/' + t('mail', 'Mail attachments'))
-				const url = officeUrl(file.fileId, Object.keys(window.OC?.appswebroots ?? {}))
+				const url = this.canOpenInText
+					? fileUrl(file.fileId)
+					: officeUrl(file.fileId, Object.keys(window.OC?.appswebroots ?? {}))
 				if (tab) {
 					tab.location = url
 				} else {
