@@ -106,6 +106,7 @@ import Logger from '../logger.js'
 import { downloadAttachment, saveAttachmentForViewing, saveAttachmentToFiles } from '../service/AttachmentService.js'
 import { getUserCalendars, importCalendarEvent } from '../service/DAVService.js'
 import { pickFolder } from '../util/filePicker.js'
+import { isOfficeAttachment } from '../util/officeAttachment.js'
 import { officeUrl } from '../util/officeUrl.js'
 
 export default {
@@ -212,15 +213,8 @@ export default {
 			})
 		},
 
-		/** An office document, and an office app (Nextcloud Office, ONLYOFFICE, Euro-Office) is enabled */
 		canOpenInOffice() {
-			const officeApps = ['richdocuments', 'onlyoffice', 'eurooffice']
-			const enabled = Object.keys(window.OC?.appswebroots ?? {})
-			if (!officeApps.some((app) => enabled.includes(app))) {
-				return false
-			}
-			return /^application\/(msword|rtf|vnd\.ms-(excel|powerpoint)|vnd\.openxmlformats-officedocument\.|vnd\.oasis\.opendocument\.(text|spreadsheet|presentation))/.test(this.mime ?? '')
-				|| /\.(docx?|xlsx?|pptx?|od[tsp]|rtf)$/i.test(this.fileName ?? '')
+			return isOfficeAttachment(this.mime, this.fileName, Object.keys(window.OC?.appswebroots ?? {}))
 		},
 
 		/** Audio the browser plays; senders often label it application/octet-stream, so the extension counts too */
