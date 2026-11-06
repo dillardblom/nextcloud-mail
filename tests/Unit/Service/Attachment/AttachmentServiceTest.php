@@ -664,6 +664,27 @@ class AttachmentServiceTest extends TestCase {
 		$this->assertSame([], $result);
 	}
 
+	public function testGetAttachmentNamesEncryptedMessageIsLookedUp(): void {
+		// Arrange
+		$account = $this->createConfiguredMock(Account::class, ['getUserId' => 'user1', 'getId' => 1]);
+		$mailbox = new Mailbox();
+		$mailbox->setId(2);
+		$message = new Message();
+		$message->setUid(3);
+		$message->setStructureAnalyzed(true);
+		$message->setFlagAttachments(false);
+		$message->setEncrypted(true);
+		$client = $this->createStub(Horde_Imap_Client_Socket::class);
+		$cached = [['id' => '1.2', 'fileName' => 'secret.pdf', 'mime' => 'application/pdf', 'downloadUrl' => 'http://example.test/dl', 'mimeUrl' => 'http://example.test/mime']];
+		$this->cache->expects(self::once())->method('get')->willReturn($cached);
+
+		// Act
+		$result = $this->service->getAttachmentNames($account, $mailbox, $message, $client);
+
+		// Assert
+		$this->assertSame($cached, $result);
+	}
+
 	public function testGetAttachmentNamesCacheHitEmptyArray(): void {
 		// Arrange
 		$account = $this->createConfiguredMock(Account::class, ['getUserId' => 'user1', 'getId' => 1]);

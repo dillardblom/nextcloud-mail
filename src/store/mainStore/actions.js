@@ -209,7 +209,25 @@ function transformMailboxName(account, mailbox) {
 	}
 }
 
+/**
+ * Only the threaded list sends a thread size; other fetches must not wipe it.
+ *
+ * @param {object} existing the stored envelope
+ * @param {object} envelope the fetched envelope
+ * @return {object}
+ */
+function keepThreadSize(existing, envelope) {
+	const merged = { ...existing, ...envelope }
+	if ((envelope.threadSize ?? null) === null && existing.threadSize) {
+		merged.threadSize = existing.threadSize
+	}
+	return merged
+}
+
 export default function mainStoreActions() {
+	let accountSettingsSave = Promise.resolve()
+	const foldedVersions = {}
+
 	return {
 		updateSyncTimestamp() {
 			this.syncTimestamp = Date.now()
@@ -314,7 +332,13 @@ export default function mainStoreActions() {
 					key,
 					value,
 				})
-				return await savePreference('account-settings', JSON.stringify(this.allAccountSettings))
+				// Every save sends the whole settings list, so queue them to keep an
+				// older snapshot from overwriting a newer one
+				const save = accountSettingsSave
+					.catch(() => {})
+					.then(() => savePreference('account-settings', JSON.stringify(this.allAccountSettings)))
+				accountSettingsSave = save
+				return await save
 			})
 		},
 		async deleteAccount(account) {
@@ -360,8 +384,73 @@ export default function mainStoreActions() {
 					key: 'collapsed',
 					value: false,
 				})
+				if (account.folded) {
+					foldedVersions[account.id] = (foldedVersions[account.id] ?? 0) + 1
+					this.toggleAccountFoldedMutation(account.id)
+					try {
+						await this.setAccountSetting({
+							accountId: account.id,
+							key: 'folded',
+							value: false,
+						})
+					} catch (error) {
+						logger.error(`could not save unfolded state of account ${account.id}`, { error })
+					}
+				}
 				return mailbox
 			})
+		},
+		async toggleAccountFolded(accountId) {
+			const previous = this.accountsUnmapped[accountId].folded
+			const version = (foldedVersions[accountId] ?? 0) + 1
+			foldedVersions[accountId] = version
+			this.toggleAccountFoldedMutation(accountId)
+			try {
+				await this.setAccountSetting({
+					accountId,
+					key: 'folded',
+					value: !previous,
+				})
+			} catch (error) {
+				if (foldedVersions[accountId] === version) {
+					this.toggleAccountFoldedMutation(accountId)
+					this.setAccountSettingMutation({
+						accountId,
+						key: 'folded',
+						value: previous,
+					})
+				}
+				throw error
+			}
+		},
+		async setAccountUnifiedLabel({
+			accountId,
+			label,
+			color,
+			asName = false,
+		}) {
+			const account = this.accountsUnmapped[accountId]
+			const previous = {
+				label: account.unifiedLabel,
+				color: account.unifiedLabelColor,
+				asName: account.unifiedLabelAsName,
+			}
+			const apply = ({ label, color, asName }) => {
+				account.unifiedLabel = label
+				account.unifiedLabelColor = color
+				account.unifiedLabelAsName = asName
+				this.setAccountSettingMutation({ accountId, key: 'unifiedLabel', value: label })
+				this.setAccountSettingMutation({ accountId, key: 'unifiedLabelColor', value: color })
+				this.setAccountSettingMutation({ accountId, key: 'unifiedLabelAsName', value: asName })
+			}
+
+			apply({ label, color, asName })
+			try {
+				await this.setAccountSetting({ accountId, key: 'unifiedLabelColor', value: color })
+			} catch (error) {
+				apply(previous)
+				throw error
+			}
 		},
 		async moveAccount({
 			account,
@@ -715,6 +804,7 @@ export default function mainStoreActions() {
 			query,
 			addToUnifiedMailboxes = true,
 			includeCacheBuster = false,
+			signal,
 		}) {
 			return handleHttpAuthErrors(async () => {
 				const mailbox = this.getMailbox(mailboxId)
@@ -725,6 +815,7 @@ export default function mainStoreActions() {
 							mailboxId: mb.databaseId,
 							query,
 							addToUnifiedMailboxes: false,
+							signal,
 							sort: this.getPreference('sort-order'),
 							view: this.getPreference('layout-message-view'),
 						})),
@@ -752,7 +843,7 @@ export default function mainStoreActions() {
 						envelopes,
 						addToUnifiedMailboxes,
 					}))),
-				)(mailbox.accountId, mailboxId, query, undefined, PAGE_SIZE, this.getPreference('sort-order'), this.getPreference('layout-message-view'), includeCacheBuster ? mailbox.cacheBuster : undefined)
+				)(mailbox.accountId, mailboxId, query, undefined, PAGE_SIZE, this.getPreference('sort-order'), this.getPreference('layout-message-view'), includeCacheBuster ? mailbox.cacheBuster : undefined, signal)
 			})
 		},
 		async fetchNextEnvelopePage({
@@ -1902,6 +1993,10 @@ export default function mainStoreActions() {
 		},
 		addAccountMutation(account) {
 			account.collapsed = account.collapsed ?? true
+			account.folded = account.folded ?? false
+			account.unifiedLabel = account.unifiedLabel ?? ''
+			account.unifiedLabelColor = account.unifiedLabelColor ?? ''
+			account.unifiedLabelAsName = account.unifiedLabelAsName ?? false
 
 			Vue.set(this.accountsUnmapped, account.id, account)
 
@@ -1937,6 +2032,9 @@ export default function mainStoreActions() {
 		},
 		toggleAccountCollapsedMutation(accountId) {
 			this.accountsUnmapped[accountId].collapsed = !this.accountsUnmapped[accountId].collapsed
+		},
+		toggleAccountFoldedMutation(accountId) {
+			this.accountsUnmapped[accountId].folded = !this.accountsUnmapped[accountId].folded
 		},
 		expandAccountMutation(accountId) {
 			this.accountsUnmapped[accountId].collapsed = false
@@ -2085,7 +2183,7 @@ export default function mainStoreActions() {
 				const mailbox = this.mailboxes[envelope.mailboxId]
 				const existing = mailbox.envelopeLists[listId] || []
 				this.normalizeTags(envelope)
-				Vue.set(this.envelopes, envelope.databaseId, { ...this.envelopes[envelope.databaseId] || {}, ...envelope })
+				Vue.set(this.envelopes, envelope.databaseId, keepThreadSize(this.envelopes[envelope.databaseId] || {}, envelope))
 				Vue.set(envelope, 'accountId', mailbox.accountId)
 				Vue.set(mailbox.envelopeLists, listId, uniq(orderByDateInt(this.appendOrReplaceEnvelopeId(existing, envelope))))
 				if (!addToUnifiedMailboxes) {
@@ -2269,7 +2367,7 @@ export default function mainStoreActions() {
 				const mailbox = this.mailboxes[e.mailboxId]
 				Vue.set(e, 'accountId', mailbox.accountId)
 				const existing = this.envelopes[e.databaseId] || {}
-				const merged = { ...existing, ...e }
+				const merged = keepThreadSize(existing, e)
 				// preserve attachments
 				if (existing.attachments && existing.attachments.length > 0) {
 					merged.attachments = existing.attachments

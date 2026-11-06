@@ -149,6 +149,7 @@
 						<!-- TODO: display information about signer and/or CA certificate -->
 					</NcActions>
 					<NcActions :inline="inlineMenuSize">
+						<!-- Named like their icons: in the collapsed menu (mobile) the reply-all action was called "Reply" -->
 						<NcActionButton
 							:close-after-click="true"
 							@click="onReply('', false)">
@@ -162,7 +163,7 @@
 									:title="t('mail', 'Reply')"
 									:size="20" />
 							</template>
-							{{ t('mail', 'Reply') }}
+							{{ hasMultipleRecipients ? t('mail', 'Reply all') : t('mail', 'Reply') }}
 						</NcActionButton>
 						<NcActionButton
 							v-if="hasMultipleRecipients"
@@ -170,10 +171,10 @@
 							@click="onReply('', false, true)">
 							<template #icon>
 								<ReplyIcon
-									:title="t('mail', 'Reply to sender only')"
+									:title="t('mail', 'Reply')"
 									:size="20" />
 							</template>
-							{{ t('mail', 'Reply to sender only') }}
+							{{ t('mail', 'Reply') }}
 						</NcActionButton>
 						<NcActionButton
 							v-if="hasWriteAcl && (inlineMenuSize >= 2 || !moreActionsOpen)"
@@ -350,6 +351,7 @@
 			:reply-button-label="replyButtonLabel"
 			@load="onMessageLoaded"
 			@print-shortcut="$emit('print-shortcut')"
+			@reply-shortcut="$emit('reply-shortcut')"
 			@translate="onOpenTranslationModal"
 			@reply="(body) => onReply(body, showFollowUpHeader)" />
 		<Error

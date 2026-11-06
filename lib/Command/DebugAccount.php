@@ -35,10 +35,10 @@ final class DebugAccount extends Command {
 	 */
 	protected function configure(): void {
 		$this->setName('mail:account:debug');
-		$this->setDescription('Enable or Disable IMAP/SMTP debugging for an account');
-		$this->addArgument(self::ARGUMENT_ACCOUNT_ID, InputArgument::REQUIRED);
-		$this->addOption(self::OPTION_DEBUG_ON, null, InputOption::VALUE_NONE);
-		$this->addOption(self::OPTION_DEBUG_OFF, null, InputOption::VALUE_NONE);
+		$this->setDescription('Enable or disable IMAP/SMTP debug logging for an account');
+		$this->addArgument(self::ARGUMENT_ACCOUNT_ID, InputArgument::REQUIRED, 'Id of the account, see mail:account:list');
+		$this->addOption(self::OPTION_DEBUG_ON, null, InputOption::VALUE_NONE, 'Enable debug logging');
+		$this->addOption(self::OPTION_DEBUG_OFF, null, InputOption::VALUE_NONE, 'Disable debug logging');
 	}
 
 	protected function execute(InputInterface $input, OutputInterface $output): int {

@@ -4,10 +4,12 @@
  */
 
 import { createLocalVue, shallowMount } from '@vue/test-utils'
+import { createPinia, setActivePinia } from 'pinia'
 import BlockedContentWarning from '../../../components/BlockedContentWarning.vue'
 import MessageHTMLBody from '../../../components/MessageHTMLBody.vue'
 import Nextcloud from '../../../mixins/Nextcloud.js'
 import { trustSender } from '../../../service/TrustedSenderService.js'
+import useMainStore from '../../../store/mainStore.js'
 
 vi.mock('@iframe-resizer/parent', () => ({ default: vi.fn() }))
 vi.mock('@nextcloud/initial-state', () => ({ loadState: vi.fn().mockReturnValue(false) }))
@@ -19,6 +21,10 @@ const localVue = createLocalVue()
 localVue.mixin(Nextcloud)
 
 describe('MessageHTMLBody', () => {
+	beforeEach(() => {
+		setActivePinia(createPinia())
+	})
+
 	// Attached, because only an iframe that is part of a document has a
 	// `contentDocument` to listen on.
 	const mountBody = () => shallowMount(MessageHTMLBody, {
@@ -175,6 +181,50 @@ describe('MessageHTMLBody', () => {
 			doc.dispatchEvent(keydown('p'))
 
 			expect(view.emitted('print-shortcut')).toBeUndefined()
+		})
+	})
+
+	describe('reply shortcut', () => {
+		it('takes Ctrl+R from inside the frame and keeps the page from reloading', () => {
+			const view = mountBody()
+			view.vm.onMessageFrameLoad()
+
+			const event = keydown('r')
+			view.vm.getIframeDoc().dispatchEvent(event)
+
+			expect(view.emitted('reply-shortcut')).toHaveLength(1)
+			expect(view.emitted('print-shortcut')).toBeUndefined()
+			expect(event.defaultPrevented).toBe(true)
+		})
+
+		it('leaves Ctrl+Shift+R to the browser', () => {
+			const view = mountBody()
+			view.vm.onMessageFrameLoad()
+
+			const event = keydown('r', { ctrlKey: true, shiftKey: true })
+			view.vm.getIframeDoc().dispatchEvent(event)
+
+			expect(view.emitted('reply-shortcut')).toBeUndefined()
+			expect(event.defaultPrevented).toBe(false)
+		})
+
+		it('uses the user\'s keys, and hands Ctrl+R for refresh to the app', () => {
+			useMainStore().savePreferenceMutation({ key: 'shortcuts', value: JSON.stringify({ reply: 'r', refresh: 'mod+r' }) })
+			const view = mountBody()
+			view.vm.onMessageFrameLoad()
+			const forwarded = vi.fn()
+			document.addEventListener('keydown', forwarded)
+
+			const reply = keydown('r', {})
+			view.vm.getIframeDoc().dispatchEvent(reply)
+			const refresh = keydown('r')
+			view.vm.getIframeDoc().dispatchEvent(refresh)
+			document.removeEventListener('keydown', forwarded)
+
+			expect(view.emitted('reply-shortcut')).toHaveLength(1)
+			expect(refresh.defaultPrevented).toBe(true)
+			expect(forwarded).toHaveBeenCalledTimes(1)
+			expect(forwarded.mock.calls[0][0].ctrlKey).toBe(true)
 		})
 	})
 })

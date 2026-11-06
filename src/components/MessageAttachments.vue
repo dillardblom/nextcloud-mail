@@ -11,6 +11,7 @@
 					v-for="(attachment, idx) in attachments"
 					:id="attachment.id"
 					ref="attachments"
+					:message-id="envelope.databaseId"
 					:key="attachment.id"
 					:file-name="attachment.fileName"
 					:size="attachment.size"

@@ -97,7 +97,10 @@
 					<EnvelopeSingleClickActions
 						:is-read="isRead"
 						:is-important="isImportant"
+						:is-favorite="isFavorite"
+						:can-favorite="canFavorite"
 						@delete="$emit('delete')"
+						@toggle-flagged="$emit('toggle-flagged')"
 						@toggle-important="$emit('toggle-important')"
 						@toggle-seen="$emit('toggle-seen')" />
 
@@ -278,6 +281,16 @@ export default {
 		},
 
 		isImportant: {
+			type: Boolean,
+			default: false,
+		},
+
+		isFavorite: {
+			type: Boolean,
+			default: false,
+		},
+
+		canFavorite: {
 			type: Boolean,
 			default: false,
 		},

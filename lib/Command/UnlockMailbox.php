@@ -31,8 +31,8 @@ class UnlockMailbox extends Command {
 
 	protected function configure(): void {
 		$this->setName('mail:mailbox:unlock');
-		$this->setDescription('Release the sync locks of a mailbox');
-		$this->addArgument(self::ARGUMENT_MAILBOX_ID, InputArgument::REQUIRED, 'Id of the mailbox to unlock');
+		$this->setDescription('Release the sync locks of a folder (IMAP mailbox)');
+		$this->addArgument(self::ARGUMENT_MAILBOX_ID, InputArgument::REQUIRED, 'Id of the folder, see mail:mailbox:list');
 		$this->addOption(self::OPTION_FORCE, 'f', InputOption::VALUE_NONE, 'Unlock even if the mailbox is still actively locked');
 	}
 

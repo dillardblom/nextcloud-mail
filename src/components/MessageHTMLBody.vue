@@ -36,13 +36,17 @@
 
 <script>
 import iframeResize from '@iframe-resizer/parent'
+import { mapStores } from 'pinia'
 import BlockedContentWarning from './BlockedContentWarning.vue'
 import MdnRequest from './MdnRequest.vue'
 import NeedsTranslationInfo from './NeedsTranslationInfo.vue'
 import logger from '../logger.js'
 import { trustSender } from '../service/TrustedSenderService.js'
+import useMainStore from '../store/mainStore.js'
 import { detectForeignLanguage } from '../util/languageDetection.ts'
 import { isPrintShortcut } from '../util/printMessage.ts'
+import { isReplyShortcut, replyKey } from '../util/replyShortcut.js'
+import { effectiveShortcuts, shortcutKeyFromEvent } from '../util/shortcuts.js'
 
 export default {
 	name: 'MessageHTMLBody',
@@ -79,6 +83,8 @@ export default {
 	},
 
 	computed: {
+		...mapStores(useMainStore),
+
 		sender() {
 			return this.message.from[0]?.email
 		},
@@ -136,11 +142,28 @@ export default {
 		},
 
 		/**
-		 * Hand the print shortcut to the app, from inside the message frame.
+		 * Hand the print and reply shortcuts to the app, from inside the message frame. Another
+		 * shortcut with Ctrl/Cmd (say Ctrl+R for refresh) goes to the app's own document, where
+		 * the list shortcuts listen, instead of to the browser (which would reload the page).
 		 *
 		 * @param {KeyboardEvent} event the frame's keydown event
 		 */
 		onFrameKeyDown(event) {
+			if (isReplyShortcut(event, replyKey(this.mainStore))) {
+				event.preventDefault()
+				if (!event.repeat) {
+					this.$emit('reply-shortcut')
+				}
+				return
+			}
+			const key = shortcutKeyFromEvent(event)
+			if (key?.startsWith('mod+') && Object.values(effectiveShortcuts(this.mainStore.getPreference('shortcuts'))).includes(key)) {
+				event.preventDefault()
+				for (const type of ['keydown', 'keyup']) {
+					document.dispatchEvent(new KeyboardEvent(type, { key: event.key, code: event.code, ctrlKey: event.ctrlKey, metaKey: event.metaKey, bubbles: true }))
+				}
+				return
+			}
 			if (!isPrintShortcut(event)) {
 				return
 			}

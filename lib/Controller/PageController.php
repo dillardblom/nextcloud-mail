@@ -242,6 +242,9 @@ class PageController extends Controller {
 			'index-context-chat' => $this->contextChatSettingsService->isIndexingEnabled($this->userId) ? 'true' : 'false',
 			'compact-mode' => $this->preferences->getPreference($this->userId, 'compact-mode', 'false'),
 			'auto-mark-as-read' => $this->preferences->getPreference($this->userId, 'auto-mark-as-read', '3000'),
+			'modalSize' => $this->preferences->getPreference($this->userId, 'modalSize', 'normal'),
+			'shortcuts' => $this->preferences->getPreference($this->userId, 'shortcuts', '{}'),
+			'auto-refresh' => $this->preferences->getPreference($this->userId, 'auto-refresh', '15'),
 		]);
 		$this->initialStateService->provideInitialState(
 			'prefill_displayName',
@@ -355,6 +358,11 @@ class PageController extends Controller {
 
 		$csp = new ContentSecurityPolicy();
 		$csp->addAllowedFrameDomain('\'self\'');
+		// Images in the composer (e.g. of a pasted signature) from hosts the admin
+		// allowed. Received messages render in a frame with a policy of their own.
+		foreach ($this->getComposerImageHosts() as $host) {
+			$csp->addAllowedImageDomain('https://' . $host);
+		}
 		$response->setContentSecurityPolicy($csp);
 		$this->dispatcher->dispatchTyped(new RenderReferenceEvent());
 
@@ -482,5 +490,21 @@ class PageController extends Controller {
 	#[NoCSRFRequired]
 	public function mailto(): TemplateResponse {
 		return $this->index();
+	}
+
+	/**
+	 * Host names from the composer_image_domains setting. Anything that is not
+	 * a plain host name (a scheme, path, port or wildcard) is ignored.
+	 *
+	 * @return string[]
+	 */
+	private function getComposerImageHosts(): array {
+		$setting = $this->appConfig->getValueString(Application::APP_ID, ConfigLexicon::COMPOSER_IMAGE_DOMAINS);
+		$hosts = preg_split('/[\s,]+/', strtolower($setting), -1, PREG_SPLIT_NO_EMPTY);
+
+		return array_values(array_filter(
+			$hosts === false ? [] : $hosts,
+			static fn (string $host): bool => preg_match('/^(?=.{1,253}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/', $host) === 1,
+		));
 	}
 }

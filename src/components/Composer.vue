@@ -7,7 +7,9 @@
 		class="message-composer"
 		@dragover.prevent
 		@drop="onDrop"
-		@paste="onPaste">
+		@paste="onPaste"
+		@input.capture="markUserEdit"
+		@change.capture="markUserEdit">
 		<NcReferencePickerModal
 			v-if="isPickerAvailable && isPickerOpen"
 			id="reference-picker"
@@ -25,13 +27,14 @@
 					:options="aliases"
 					label="name"
 					:get-option-key="(option) => option.selectId"
-					:searchable="false"
+					:searchable="true"
+					:filter-by="filterAlias"
 					:placeholder="t('mail', 'Select account')"
 					:aria-label-combobox="t('mail', 'Select account')"
 					:clear-on-select="false"
 					:append-to-body="false"
 					:selectable="(option) => option.selectable"
-					@option:selected="onAliasChange">
+					@option:selected="markUserEdit(); onAliasChange($event)">
 					<template #option="option">
 						{{ formatAliases(option) }}
 					</template>
@@ -68,7 +71,8 @@
 					:create-option="createRecipientOption"
 					:clear-search-on-blur="() => clearOnBlur('to')"
 					@input="saveDraftDebounced"
-					@option:selecting="onNewToAddr"
+					@option:selecting="markUserEdit(); onNewToAddr($event)"
+					@option:deselected="markUserEdit"
 					@search:blur="onToFieldBlur"
 					@search="onAutocomplete($event, 'to')">
 					<template #search="{ events, attributes }">
@@ -150,7 +154,8 @@
 					:clearable="true"
 					:create-option="createRecipientOption"
 					@input="saveDraftDebounced"
-					@option:selecting="onNewCcAddr"
+					@option:selecting="markUserEdit(); onNewCcAddr($event)"
+					@option:deselected="markUserEdit"
 					@search:blur="onNewCcAddr"
 					@search="onAutocomplete($event, 'cc')">
 					<template #search="{ events, attributes }">
@@ -218,7 +223,8 @@
 					:clearable="true"
 					:create-option="createRecipientOption"
 					@input="saveDraftDebounced"
-					@option:selecting="onNewBccAddr"
+					@option:selecting="markUserEdit(); onNewBccAddr($event)"
+					@option:deselected="markUserEdit"
 					@search:blur="onNewBccAddr"
 					@search="onAutocomplete($event, 'bcc')">
 					<template #search="{ events, attributes }">
@@ -583,6 +589,7 @@ import { findRecipient } from '../service/AutocompleteService.js'
 import { savePreference } from '../service/PreferenceService.js'
 import { EDITOR_MODE_HTML, EDITOR_MODE_TEXT } from '../store/constants.js'
 import useMainStore from '../store/mainStore.js'
+import { isEmptyApartFromSignature } from '../util/draft.js'
 import { parseEmailList } from '../util/emailAddress.js'
 import { formatDateTime } from '../util/formatDateTime.js'
 import { containsImage, detect, html, toHtml, toPlain } from '../util/text.js'
@@ -623,6 +630,12 @@ export default {
 	},
 
 	props: {
+		/** The user already edited this message (before the composer was re-rendered) */
+		hasUserEdits: {
+			type: Boolean,
+			default: false,
+		},
+
 		fromAccount: {
 			type: Number,
 			default: () => undefined,
@@ -782,6 +795,7 @@ export default {
 			attachments: this.attachmentsData,
 			noReply: this.to.some((to) => to.email?.startsWith('noreply@') || to.email?.startsWith('no-reply@')),
 			saveDraftDebounced: debounce(5 * 1000, this.saveDraft),
+			userEdited: this.hasUserEdits,
 			selectTo: this.to,
 			selectCc: this.cc,
 			selectBcc: this.bcc,
@@ -1335,22 +1349,45 @@ export default {
 			return data
 		},
 
+		/**
+		 * A reply or forward is filled in by code (recipients, subject, quote, signature), which
+		 * fires the same change events as typing. Only what the user does counts as an edit, so
+		 * opening and closing a reply does not leave a draft behind.
+		 */
+		markUserEdit() {
+			if (!this.userEdited) {
+				this.userEdited = true
+				this.$emit('user-edit')
+			}
+		},
+
 		saveDraft() {
+			if (!this.userEdited) {
+				logger.debug('No edits by the user yet, ignoring draft save')
+				return
+			}
 			const draftData = this.getMessageData()
-			if (draftData.subject === ''
-				&& draftData.body?.value === ''
-				&& draftData.cc.length === 0
-				&& draftData.bcc.length === 0
-				&& draftData.to.length === 0
-				&& draftData.sendAt === undefined) {
-				// this might happen after a call to reset()
-				// where the text input gets reset as well
-				// and fires an input event
+			if (!this.hasOwnContent()) {
+				// Only the signature (inserted for every new message), or nothing at
+				// all after a call to reset(), whose text input fires an input event
 				logger.debug('Nothing substantial to save, ignoring draft save')
 				return
 			}
 
 			this.$emit('draft', draftData)
+		},
+
+		/**
+		 * Whether the message holds anything worth a draft. A message with
+		 * nothing but the signature only counts when it is a draft already, so
+		 * clearing a saved draft is still saved.
+		 *
+		 * @return {boolean}
+		 */
+		hasOwnContent() {
+			return this.isDraft
+				|| this.draftSaved
+				|| !isEmptyApartFromSignature(this.getMessageData(), this.bodyVal)
 		},
 
 		insertSignature() {
@@ -1390,11 +1427,13 @@ export default {
 		},
 
 		onPicked(content) {
+			this.markUserEdit()
 			this.closePicker()
 			this.bus.emit('append-to-body-at-cursor', content)
 		},
 
 		onTextBlockInsert(content) {
+			this.markUserEdit()
 			this.isTextBlockPickerOpen = false
 			this.bus.emit('insert-text-block', content)
 		},
@@ -1430,6 +1469,7 @@ export default {
 		},
 
 		onChangeSendLater(value) {
+			this.markUserEdit()
 			this.sendAtVal = Number.parseInt(value, 10)
 		},
 
@@ -1477,11 +1517,13 @@ export default {
 		},
 
 		onAddLocalAttachment() {
+			this.markUserEdit()
 			this.bus.emit('on-add-local-attachment')
 			this.saveDraftDebounced()
 		},
 
 		onAddCloudAttachment() {
+			this.markUserEdit()
 			this.bus.emit('on-add-cloud-attachment')
 			this.saveDraftDebounced()
 		},
@@ -1659,6 +1701,19 @@ export default {
 		 * @param {object} alias the alias to format
 		 * @return {string}
 		 */
+		/**
+		 * Type to find an account or alias: every word must occur in the name or the address
+		 *
+		 * @param {object} alias The account or alias option
+		 * @param {string} label The option label (unused, the name and address are matched)
+		 * @param {string} search What the user typed
+		 * @return {boolean}
+		 */
+		filterAlias(alias, label, search) {
+			const text = this.formatAliases(alias).toLocaleLowerCase()
+			return search.toLocaleLowerCase().split(/\s+/).filter(Boolean).every((word) => text.includes(word))
+		},
+
 		formatAliases(alias) {
 			if (!alias.name) {
 				return alias.emailAddress
@@ -1838,6 +1893,7 @@ export default {
 				return
 			}
 
+			this.markUserEdit()
 			this.bus.emit('on-add-local-files', files)
 			this.saveDraftDebounced()
 		},
@@ -1859,6 +1915,7 @@ export default {
 				return
 			}
 
+			this.markUserEdit()
 			event.preventDefault()
 
 			this.bus.emit('on-add-local-files', files)

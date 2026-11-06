@@ -38,6 +38,7 @@ use function array_merge;
 use function array_udiff;
 use function get_class;
 use function ltrim;
+use function mb_check_encoding;
 use function mb_convert_encoding;
 use function mb_strcut;
 use function OCA\Mail\array_flat_map;
@@ -155,6 +156,29 @@ class MessageMapper extends QBMapper {
 			->where($query->expr()->eq('mailbox_id', $query->createNamedParameter($mailbox->getId(), IQueryBuilder::PARAM_INT), IQueryBuilder::PARAM_INT));
 
 		return $this->findUids($query);
+	}
+
+	/**
+	 * The ones of the given UIDs that are cached for the mailbox
+	 *
+	 * @param int[] $uids
+	 *
+	 * @return int[]
+	 */
+	public function findCachedUids(Mailbox $mailbox, array $uids): array {
+		$cached = [];
+		foreach (array_chunk($uids, 1000) as $chunk) {
+			$query = $this->db->getQueryBuilder();
+			$query->select('uid')
+				->from($this->getTableName())
+				->where(
+					$query->expr()->eq('mailbox_id', $query->createNamedParameter($mailbox->getId(), IQueryBuilder::PARAM_INT), IQueryBuilder::PARAM_INT),
+					$query->expr()->in('uid', $query->createNamedParameter($chunk, IQueryBuilder::PARAM_INT_ARRAY), IQueryBuilder::PARAM_INT_ARRAY),
+				);
+			$cached[] = $this->findUids($query);
+		}
+
+		return array_merge(...$cached);
 	}
 
 	public function findAllIds(Mailbox $mailbox): array {
@@ -313,7 +337,7 @@ class MessageMapper extends QBMapper {
 				$threadRootId = self::filterMessageIdLength($message->getThreadRootId());
 				$qb1->setParameter('thread_root_id', $threadRootId, $threadRootId === null ? IQueryBuilder::PARAM_NULL : IQueryBuilder::PARAM_STR);
 				$qb1->setParameter('mailbox_id', $message->getMailboxId(), IQueryBuilder::PARAM_INT);
-				$qb1->setParameter('subject', $message->getSubject(), IQueryBuilder::PARAM_STR);
+				$qb1->setParameter('subject', self::toUtf8($message->getSubject()), IQueryBuilder::PARAM_STR);
 				$qb1->setParameter('sent_at', $message->getSentAt(), IQueryBuilder::PARAM_INT);
 				$qb1->setParameter('flag_answered', $message->getFlagAnswered(), IQueryBuilder::PARAM_BOOL);
 				$qb1->setParameter('flag_deleted', $message->getFlagDeleted(), IQueryBuilder::PARAM_BOOL);
@@ -343,8 +367,8 @@ class MessageMapper extends QBMapper {
 
 						$qb2->setParameter('message_id', $message->getId(), IQueryBuilder::PARAM_INT);
 						$qb2->setParameter('type', $type, IQueryBuilder::PARAM_INT);
-						$qb2->setParameter('label', mb_strcut($recipient->getLabel(), 0, 255), IQueryBuilder::PARAM_STR);
-						$qb2->setParameter('email', mb_strcut($recipient->getEmail(), 0, 255), IQueryBuilder::PARAM_STR);
+						$qb2->setParameter('label', mb_strcut(self::toUtf8($recipient->getLabel()) ?? '', 0, 255), IQueryBuilder::PARAM_STR);
+						$qb2->setParameter('email', mb_strcut(self::toUtf8($recipient->getEmail()), 0, 255), IQueryBuilder::PARAM_STR);
 
 						$qb2->executeStatement();
 					}
@@ -361,6 +385,19 @@ class MessageMapper extends QBMapper {
 
 			throw $e;
 		}
+	}
+
+	/**
+	 * Headers with raw 8-bit bytes and no declared charset are usually
+	 * Windows-1252. Convert them so the database does not reject the row.
+	 *
+	 * @psalm-return ($value is null ? null : string)
+	 */
+	private static function toUtf8(?string $value): ?string {
+		if ($value === null || mb_check_encoding($value, 'UTF-8')) {
+			return $value;
+		}
+		return mb_convert_encoding($value, 'UTF-8', 'Windows-1252');
 	}
 
 	/**
@@ -760,6 +797,34 @@ class MessageMapper extends QBMapper {
 	}
 
 	/**
+	 * Number of messages per thread in the account (all its mailboxes, like findThread)
+	 *
+	 * @param string[] $threadRootIds
+	 * @return array<string, int> thread root id => number of messages
+	 */
+	public function countThreadMessages(Account $account, array $threadRootIds): array {
+		$counts = [];
+		foreach (array_chunk(array_values(array_unique($threadRootIds)), 1000) as $chunk) {
+			$qb = $this->db->getQueryBuilder();
+			$qb->select('messages.thread_root_id')
+				->selectAlias($qb->func()->count('messages.id'), 'cnt')
+				->from($this->getTableName(), 'messages')
+				->join('messages', 'mail_mailboxes', 'mailboxes', $qb->expr()->eq('messages.mailbox_id', 'mailboxes.id', IQueryBuilder::PARAM_INT))
+				->where(
+					$qb->expr()->eq('mailboxes.account_id', $qb->createNamedParameter($account->getId(), IQueryBuilder::PARAM_INT)),
+					$qb->expr()->in('messages.thread_root_id', $qb->createNamedParameter($chunk, IQueryBuilder::PARAM_STR_ARRAY), IQueryBuilder::PARAM_STR_ARRAY)
+				)
+				->groupBy('messages.thread_root_id');
+			$result = $qb->executeQuery();
+			while (($row = $result->fetch()) !== false) {
+				$counts[(string)$row['thread_root_id']] = (int)$row['cnt'];
+			}
+			$result->closeCursor();
+		}
+		return $counts;
+	}
+
+	/**
 	 * @param Account $account
 	 * @param string $threadRootId
 	 *
@@ -956,11 +1021,11 @@ class MessageMapper extends QBMapper {
 		}
 
 		if ($uids !== null) {
-			return $this->findIdsByChunkedParameter($select, self::PARAM_UIDS, $uids);
+			return $this->findIdsByChunkedParameter($select, self::PARAM_UIDS, $uids, $sortOrder === 'ASC', $limit);
 		}
 
 		if ($ids !== null) {
-			return $this->findIdsByChunkedParameter($select, self::PARAM_IDS, $ids);
+			return $this->findIdsByChunkedParameter($select, self::PARAM_IDS, $ids, $sortOrder === 'ASC', $limit);
 		}
 
 		$result = array_map(static fn (Message $message) => $message->getId(), $this->findEntities($select));
@@ -970,15 +1035,38 @@ class MessageMapper extends QBMapper {
 	/**
 	 * Run $select once per chunk of $values, binding each chunk to $parameter.
 	 *
+	 * The order and limit of $select apply per chunk, so the results of several
+	 * chunks are merged by sent date and limited again.
+	 *
 	 * @param int[] $values
 	 *
 	 * @return int[]
 	 */
-	private function findIdsByChunkedParameter(IQueryBuilder $select, string $parameter, array $values): array {
-		return array_flat_map(function (array $chunk) use ($select, $parameter) {
+	private function findIdsByChunkedParameter(IQueryBuilder $select, string $parameter, array $values, bool $ascending, ?int $limit): array {
+		$chunks = array_chunk($values, self::MAX_IN_PARAMETERS);
+		/** @var array<int, int> $sentAtById */
+		$sentAtById = [];
+		foreach ($chunks as $chunk) {
 			$select->setParameter($parameter, $chunk, IQueryBuilder::PARAM_INT_ARRAY);
-			return array_map(static fn (Message $message) => $message->getId(), $this->findEntities($select));
-		}, array_chunk($values, self::MAX_IN_PARAMETERS));
+			foreach ($this->findEntities($select) as $message) {
+				// Conditions ORed with the chunk (e.g. a subject match) are found by every chunk
+				$sentAtById[$message->getId()] = (int)$message->getSentAt();
+			}
+		}
+
+		if (count($chunks) > 1) {
+			// Stable sort, messages sent at the same time keep the database order
+			if ($ascending) {
+				asort($sentAtById);
+			} else {
+				arsort($sentAtById);
+			}
+			if ($limit !== null) {
+				$sentAtById = array_slice($sentAtById, 0, $limit, true);
+			}
+		}
+
+		return array_keys($sentAtById);
 	}
 
 	public function findIdsGloballyByQuery(IUser $user, SearchQuery $query, ?int $limit, ?array $uids = null): array {
@@ -1110,7 +1198,7 @@ class MessageMapper extends QBMapper {
 		}
 
 		if ($uids !== null) {
-			return $this->findIdsByChunkedParameter($select, self::PARAM_UIDS, $uids);
+			return $this->findIdsByChunkedParameter($select, self::PARAM_UIDS, $uids, false, $limit);
 		}
 
 		return array_map(static fn (Message $message) => $message->getId(), $this->findEntities($select));

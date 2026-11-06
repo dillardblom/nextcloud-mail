@@ -69,6 +69,12 @@
 		</NcAppSettingsSection>
 		<NcAppSettingsSection
 			v-if="account"
+			id="unified-label"
+			:name="t('mail', 'Label in combined mailboxes')">
+			<AccountLabelSettings :key="account.accountId" :account="account" />
+		</NcAppSettingsSection>
+		<NcAppSettingsSection
+			v-if="account"
 			id="classification"
 			key="classification"
 			:name="t('mail', 'Classification settings')">
@@ -151,6 +157,7 @@ import { NcAppSettingsDialog, NcAppSettingsSection, NcCheckboxRadioSwitch } from
 import { mapStores } from 'pinia'
 import AccountDefaultsSettings from '../components/AccountDefaultsSettings.vue'
 import AccountForm from '../components/AccountForm.vue'
+import AccountLabelSettings from '../components/AccountLabelSettings.vue'
 import AliasSettings from '../components/AliasSettings.vue'
 import EditorSettings from '../components/EditorSettings.vue'
 import SignatureSettings from '../components/SignatureSettings.vue'
@@ -174,6 +181,7 @@ export default {
 		SieveDisabledHint,
 		SieveFilterForm,
 		AccountForm,
+		AccountLabelSettings,
 		AliasSettings,
 		EditorSettings,
 		SignatureSettings,

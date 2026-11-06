@@ -19,6 +19,7 @@
 						@search-changed="onUpdateSearchQuery" />
 				</div>
 				<NcAppContentList
+					:key="shortkeysKey"
 					v-infinite-scroll="onScroll"
 					v-shortkey.once="shortkeys"
 					class="envelope-list"
@@ -225,6 +226,7 @@ import {
 	priorityImportantQuery,
 	priorityOtherQuery,
 } from '../util/priorityInbox.js'
+import { effectiveShortcuts, shortkeyOf } from '../util/shortcuts.js'
 import { detect, toHtml, toPlain } from '../util/text.js'
 
 const START_MAILBOX_DEBOUNCE = 5 * 1000
@@ -274,16 +276,6 @@ export default {
 			followupInfo: t('mail', 'AI identifies messages sent by you that likely require a reply but did not receive one after a couple of days and shows them here'),
 			bus: mitt(),
 			searchQuery: undefined,
-			shortkeys: {
-				del: ['del'],
-				arch: ['a'],
-				flag: ['s'],
-				next: ['arrowright'],
-				prev: ['arrowleft'],
-				refresh: ['r'],
-				unseen: ['u'],
-			},
-
 			priorityImportantQuery,
 			priorityOtherQuery,
 			favoriteQuery: 'is:starred',
@@ -295,6 +287,22 @@ export default {
 
 	computed: {
 		...mapStores(useMainStore),
+
+		/**
+		 * The list shortcuts, with the user's own keys (vue-shortkey wants a list of keys per
+		 * action). Reply needs the open thread, so `Thread` takes that one itself.
+		 */
+		shortkeys() {
+			const keys = effectiveShortcuts(this.mainStore.getPreference('shortcuts'))
+			return Object.fromEntries(Object.entries(keys)
+				.filter(([action]) => action !== 'reply')
+				.map(([action, key]) => [action, shortkeyOf(key)]))
+		},
+
+		/** v-shortkey binds once: re-render the list when the keys change */
+		shortkeysKey() {
+			return JSON.stringify(this.shortkeys)
+		},
 
 		layoutMode() {
 			return this.mainStore.getPreference('layout-mode', 'vertical-split')

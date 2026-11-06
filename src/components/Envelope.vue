@@ -24,10 +24,13 @@
 		:compact="compactMode"
 		:is-read="showImportantIconVariant"
 		:is-important="isImportant"
+		:is-favorite="data.flags.flagged"
+		:can-favorite="hasWriteAcl"
 		@click.exact="onClick"
 		@click.ctrl.exact.prevent="toggleSelected"
 		@click.shift.exact.prevent="onSelectMultiple"
 		@delete="onDelete"
+		@toggle-flagged="onToggleFlagged"
 		@toggle-important="onToggleImportant"
 		@toggle-seen="onToggleSeen"
 		@update:menuOpen="closeMoreAndSnoozeOptions">
@@ -125,6 +128,22 @@
 				<span class="envelope__recipient-text">
 					{{ addresses }}
 				</span>
+				<span
+					v-if="accountLabel"
+					class="envelope__account-label"
+					:class="{ 'envelope__account-label--dot': !accountLabel.text }"
+					:title="accountLabel.description">
+					<span
+						class="envelope__account-label-bg"
+						:style="{ backgroundColor: accountLabel.color }" />
+					<span
+						v-if="accountLabel.text"
+						class="envelope__account-label-text"
+						:style="{ color: accountLabel.color }">
+						{{ accountLabel.text }}
+					</span>
+					<span v-else class="hidden-visually">{{ accountLabel.description }}</span>
+				</span>
 			</div>
 		</template>
 		<template #subname>
@@ -185,9 +204,17 @@
 			</div>
 		</template>
 		<template #indicator>
+			<span
+				v-if="data.threadSize > 1"
+				class="envelope__thread-size"
+				:class="{ 'envelope__thread-size--unread': !data.flags.seen }"
+				:title="threadSizeLabel"
+				:aria-label="threadSizeLabel">
+				{{ data.threadSize }}
+			</span>
 			<!-- Color dot -->
 			<IconBullet
-				v-if="!data.flags.seen"
+				v-else-if="!data.flags.seen"
 				:size="20"
 				:aria-hidden="false"
 				:aria-label="t('mail', 'This message is unread')"
@@ -253,6 +280,26 @@
 					}}
 				</NcActionText>
 				<NcActionSeparator />
+				<template v-if="withReply && !draft">
+					<NcActionButton
+						:close-after-click="true"
+						@click="onReply(false)">
+						<template #icon>
+							<ReplyAllIcon v-if="hasMultipleRecipients" :size="20" />
+							<ReplyIcon v-else :size="20" />
+						</template>
+						{{ hasMultipleRecipients ? t('mail', 'Reply all') : t('mail', 'Reply') }}
+					</NcActionButton>
+					<NcActionButton
+						v-if="hasMultipleRecipients"
+						:close-after-click="true"
+						@click="onReply(true)">
+						<template #icon>
+							<ReplyIcon :size="20" />
+						</template>
+						{{ t('mail', 'Reply') }}
+					</NcActionButton>
+				</template>
 				<NcActionButton :is-menu="true" @click="showQuickActionsMenu">
 					<template #icon>
 						<IconEmailFast :size="20" />
@@ -564,6 +611,8 @@ import ImportantOutlineIcon from 'vue-material-design-icons/LabelVariantOutline.
 import OpenInNewIcon from 'vue-material-design-icons/OpenInNew.vue'
 import IconAttachment from 'vue-material-design-icons/Paperclip.vue'
 import PlusIcon from 'vue-material-design-icons/Plus.vue'
+import ReplyIcon from 'vue-material-design-icons/Reply.vue'
+import ReplyAllIcon from 'vue-material-design-icons/ReplyAll.vue'
 import Reply from 'vue-material-design-icons/ReplyOutline.vue'
 import Star from 'vue-material-design-icons/Star.vue'
 import StarOutline from 'vue-material-design-icons/StarOutline.vue'
@@ -632,6 +681,8 @@ export default {
 		IconAttachment,
 		IconBullet,
 		Reply,
+		ReplyAllIcon,
+		ReplyIcon,
 		NcActionLink,
 		NcActionText,
 		DownloadIcon,
@@ -747,7 +798,7 @@ export default {
 					accountId: this.data.accountId,
 				})
 			}
-			const recipients = buildReplyRecipients(this.envelope, {
+			const recipients = buildReplyRecipients(this.data, {
 				label: this.account.name,
 				email: this.account.emailAddress,
 			})
@@ -775,6 +826,21 @@ export default {
 						threadId: this.data.databaseId,
 					},
 				}
+			}
+		},
+
+		accountLabel() {
+			if (!this.mailbox.isUnified && !this.mailbox.isPriorityInbox) {
+				return null
+			}
+			const account = this.mainStore.getAccount(this.data.accountId)
+			if (!account?.unifiedLabel && !account?.unifiedLabelColor) {
+				return null
+			}
+			return {
+				text: account.unifiedLabel,
+				color: account.unifiedLabelColor || 'var(--color-text-maxcontrast)',
+				description: t('mail', 'Received in {email}', { email: account.emailAddress }),
 			}
 		},
 
@@ -827,6 +893,13 @@ export default {
 		isEncrypted() {
 			return this.data.encrypted // S/MIME
 				|| (this.data.previewText && isPgpText(this.data.previewText)) // PGP/Mailvelope
+		},
+
+		threadSizeLabel() {
+			const count = { count: this.data.threadSize }
+			return this.data.flags.seen
+				? n('mail', '{count} message in this conversation', '{count} messages in this conversation', this.data.threadSize, count)
+				: n('mail', 'Unread, {count} message in this conversation', 'Unread, {count} messages in this conversation', this.data.threadSize, count)
 		},
 
 		isImportant() {
@@ -1024,6 +1097,20 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Reply from the list, without opening the message first
+		 *
+		 * @param {boolean} onlySender reply to the sender only instead of to all
+		 */
+		onReply(onlySender) {
+			this.mainStore.startComposerSession({
+				reply: {
+					mode: onlySender ? 'reply' : 'replyAll',
+					data: this.data,
+				},
+			})
+		},
+
 		translateTagDisplayName,
 		setSelected(value) {
 			if (this.selected !== value) {
@@ -1833,6 +1920,65 @@ export default {
 .envelope__recipient-text {
 	min-width: 0;
 	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.envelope__thread-size {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	box-sizing: border-box;
+	min-width: calc(5 * var(--default-grid-baseline));
+	height: calc(5 * var(--default-grid-baseline));
+	padding: 0 calc(1.5 * var(--default-grid-baseline));
+	border: var(--border-width-input-focused, 2px) solid var(--color-primary-element);
+	border-radius: var(--border-radius-pill);
+	background-color: var(--color-main-background);
+	color: var(--color-primary-element);
+	font-size: var(--font-size-small, 13px);
+	font-weight: bold;
+	line-height: 1;
+
+	&--unread {
+		background-color: var(--color-primary-element);
+		color: var(--color-primary-element-text);
+	}
+}
+
+// Same look as the tags of a message
+.envelope__account-label {
+	position: relative;
+	flex: 0 0 auto;
+	max-width: 50%;
+	margin-inline-start: calc(var(--default-grid-baseline) * 2);
+	border-radius: var(--border-radius-pill);
+	overflow: hidden;
+	line-height: normal;
+
+	&--dot {
+		width: calc(var(--default-grid-baseline) * 2);
+		height: calc(var(--default-grid-baseline) * 2);
+	}
+}
+
+.envelope__account-label-bg {
+	position: absolute;
+	inset: 0;
+	opacity: 15%;
+
+	.envelope__account-label--dot & {
+		opacity: 100%;
+	}
+}
+
+.envelope__account-label-text {
+	position: relative;
+	display: block;
+	overflow: hidden;
+	padding-inline: calc(var(--default-grid-baseline) * 2);
+	font-size: calc(var(--default-font-size) * 0.8);
+	font-weight: bold;
 	text-overflow: ellipsis;
 	white-space: nowrap;
 }

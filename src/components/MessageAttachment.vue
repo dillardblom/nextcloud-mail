@@ -4,21 +4,29 @@
 -->
 
 <template>
-	<div class="attachment" :class="{ 'message-attachment--can-preview': canPreview }">
-		<div class="mail-attachment-img--wrapper" @click="$emit('open', $event)">
+	<div class="attachment" :class="{ 'message-attachment--can-preview': canPreview || canOpenInOffice || isAudio }">
+		<div class="mail-attachment-img--wrapper" @click="onClick">
 			<img
 				v-if="isImage"
 				class="mail-attached-image"
 				:src="url">
 			<img v-else class="attachment-icon" :src="mimeUrl">
 		</div>
-		<div class="mail-attached--content" @click="$emit('open', $event)">
+		<div class="mail-attached--content" @click="onClick">
 			<span
 				class="attachment-name"
 				:title="label">{{ name }}
 			</span>
 			<span class="attachment-size">{{ humanReadable(size) }}</span>
 		</div>
+		<audio
+			v-if="isAudio"
+			ref="audio"
+			class="attachment-audio"
+			controls
+			preload="none"
+			:src="url"
+			:aria-label="t('mail', 'Play {name}', { name })" />
 		<NcActions :boundaries-element="boundariesElement">
 			<template v-if="!showCalendarPopover">
 				<NcActionButton
@@ -40,6 +48,18 @@
 						<IconDownload :size="20" />
 					</template>
 					{{ t('mail', 'Download attachment') }}
+				</NcActionButton>
+				<NcActionButton
+					v-if="canOpenInOffice"
+					class="attachment-open-in-office"
+					:disabled="openingInOffice"
+					:close-after-click="true"
+					@click="openInOffice">
+					<template #icon>
+						<IconOpenInOffice v-if="!openingInOffice" :size="20" />
+						<NcLoadingIcon v-else :size="20" />
+					</template>
+					{{ t('mail', 'Open in Office') }}
 				</NcActionButton>
 				<NcActionButton
 					class="attachment-save-to-cloud"
@@ -78,13 +98,15 @@ import { formatFileSize } from '@nextcloud/files'
 import { t } from '@nextcloud/l10n'
 import { NcActionButton, NcActions, NcLoadingIcon } from '@nextcloud/vue'
 import IconArrow from 'vue-material-design-icons/ArrowLeft.vue'
+import IconOpenInOffice from 'vue-material-design-icons/FileDocumentEditOutline.vue'
 import IconSave from 'vue-material-design-icons/FolderOutline.vue'
 import IconAdd from 'vue-material-design-icons/Plus.vue'
 import IconDownload from 'vue-material-design-icons/TrayArrowDown.vue'
 import Logger from '../logger.js'
-import { downloadAttachment, saveAttachmentToFiles } from '../service/AttachmentService.js'
+import { downloadAttachment, saveAttachmentForViewing, saveAttachmentToFiles } from '../service/AttachmentService.js'
 import { getUserCalendars, importCalendarEvent } from '../service/DAVService.js'
 import { pickFolder } from '../util/filePicker.js'
+import { officeUrl } from '../util/officeUrl.js'
 
 export default {
 	name: 'MessageAttachment',
@@ -93,6 +115,7 @@ export default {
 		NcActionButton,
 		IconAdd,
 		IconArrow,
+		IconOpenInOffice,
 		NcLoadingIcon,
 		IconSave,
 		IconDownload,
@@ -101,6 +124,15 @@ export default {
 	props: {
 		id: {
 			type: String,
+			required: true,
+		},
+
+		/**
+		 * The message the attachment belongs to. In a thread this need not be the message in
+		 * the route, and an attachment id is only unique within its own message.
+		 */
+		messageId: {
+			type: Number,
 			required: true,
 		},
 
@@ -149,6 +181,7 @@ export default {
 	data() {
 		return {
 			savingToCloud: false,
+			openingInOffice: false,
 			loadingCalendars: false,
 			calendars: [],
 			showCalendarPopover: false,
@@ -177,6 +210,37 @@ export default {
 					action: this.importCalendar(cal.url),
 				}
 			})
+		},
+
+		/** An office document, and an office app (Nextcloud Office, ONLYOFFICE, Euro-Office) is enabled */
+		canOpenInOffice() {
+			const officeApps = ['richdocuments', 'onlyoffice', 'eurooffice']
+			const enabled = Object.keys(window.OC?.appswebroots ?? {})
+			if (!officeApps.some((app) => enabled.includes(app))) {
+				return false
+			}
+			return /^application\/(msword|rtf|vnd\.ms-(excel|powerpoint)|vnd\.openxmlformats-officedocument\.|vnd\.oasis\.opendocument\.(text|spreadsheet|presentation))/.test(this.mime ?? '')
+				|| /\.(docx?|xlsx?|pptx?|od[tsp]|rtf)$/i.test(this.fileName ?? '')
+		},
+
+		/** Audio the browser plays; senders often label it application/octet-stream, so the extension counts too */
+		isAudio() {
+			if (/^audio\//.test(this.mime ?? '')) {
+				return true
+			}
+			return /^application\/(octet-stream|ogg)$/.test(this.mime ?? '')
+				&& /\.(mp3|ogg|oga|opus|wav|m4a|aac|flac|weba)$/i.test(this.fileName ?? '')
+		},
+
+		/**
+		 * A PDF while Euro-Office or ONLYOFFICE is enabled: they take over the PDF view of the
+		 * Viewer, which then fails on an attachment that is not a file yet ("FileId is empty").
+		 * Saved first, it opens in their editor like an office document.
+		 */
+		isPdfForOffice() {
+			const enabled = Object.keys(window.OC?.appswebroots ?? {})
+			return ['onlyoffice', 'eurooffice'].some((app) => enabled.includes(app))
+				&& (this.mime === 'application/pdf' || /\.pdf$/i.test(this.fileName ?? ''))
 		},
 
 		boundariesElement() {
@@ -217,7 +281,7 @@ export default {
 			}
 
 			this.savingToCloud = true
-			const id = this.$route.params.threadId
+			const id = this.messageId
 
 			try {
 				await saveAttachmentToFiles(id, this.id, path)
@@ -228,6 +292,54 @@ export default {
 				showError(t('mail', 'Attachment could not be saved'))
 			} finally {
 				this.savingToCloud = false
+			}
+		},
+
+		/**
+		 * A click previews images, video, audio and PDF, and opens office documents (and PDF, when
+		 * the office app shows those) in the office app
+		 *
+		 * @param {MouseEvent} event the click
+		 */
+		onClick(event) {
+			if (this.isAudio) {
+				const audio = this.$refs.audio
+				if (audio.paused) {
+					audio.play()
+				} else {
+					audio.pause()
+				}
+				return
+			}
+			if ((!this.canPreview && this.canOpenInOffice) || this.isPdfForOffice) {
+				this.openInOffice()
+				return
+			}
+			this.$emit('open', event)
+		},
+
+		/**
+		 * Save the attachment in the "Mail attachments" folder of the user's files and open it
+		 * there, which starts the office app. Opening it again reuses the saved copy.
+		 */
+		async openInOffice() {
+			this.openingInOffice = true
+			// Open the tab now: browsers block a new tab opened after an await
+			const tab = window.open('', '_blank')
+			try {
+				const file = await saveAttachmentForViewing(this.messageId, this.id, '/' + t('mail', 'Mail attachments'))
+				const url = officeUrl(file.fileId, Object.keys(window.OC?.appswebroots ?? {}))
+				if (tab) {
+					tab.location = url
+				} else {
+					window.location = url
+				}
+			} catch (error) {
+				tab?.close()
+				Logger.error('could not open the attachment in office', { error })
+				showError(t('mail', 'Could not open the attachment'))
+			} finally {
+				this.openingInOffice = false
 			}
 		},
 
@@ -332,6 +444,12 @@ export default {
 	width: calc(100% - 100px);
 	display: flex;
     flex-direction: column;
+}
+
+.attachment-audio {
+	width: 100%;
+	height: 36px;
+	margin-top: 4px;
 }
 
 .mail-attached-image {

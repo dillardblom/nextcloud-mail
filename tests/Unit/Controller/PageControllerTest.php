@@ -188,7 +188,7 @@ class PageControllerTest extends TestCase {
 		$account1 = $this->createMock(Account::class);
 		$account2 = $this->createMock(Account::class);
 		$mailbox = $this->createStub(Mailbox::class);
-		$this->preferences->expects($this->exactly(15))
+		$this->preferences->expects($this->exactly(18))
 			->method('getPreference')
 			->willReturnMap([
 				[$this->userId, 'account-settings', '[]', json_encode([])],
@@ -206,6 +206,9 @@ class PageControllerTest extends TestCase {
 				[$this->userId, 'sort-favorites', 'false', 'false'],
 				[$this->userId, 'compact-mode', 'false', 'false'],
 				[$this->userId, 'auto-mark-as-read', '3000', '3000'],
+				[$this->userId, 'modalSize', 'normal', 'normal'],
+				[$this->userId, 'shortcuts', '{}', '{"reply":"r"}'],
+				[$this->userId, 'auto-refresh', '15', '5'],
 			]);
 		$this->accountService->expects($this->once())
 			->method('findByUserId')
@@ -293,18 +296,21 @@ class PageControllerTest extends TestCase {
 				'1.2.3',
 				'cron',
 			);
-		$this->appConfig->expects($this->exactly(4))
+		$this->appConfig->expects($this->exactly(5))
 			->method('getValueString')
 			->withConsecutive(
 				[Application::APP_ID, ConfigLexicon::LAYOUT_MESSAGE_VIEW, 'threaded'],
 				[Application::APP_ID, ConfigLexicon::GOOGLE_OAUTH_CLIENT_ID],
 				[Application::APP_ID, ConfigLexicon::MICROSOFT_OAUTH_CLIENT_ID],
 				[Application::APP_ID, ConfigLexicon::MICROSOFT_OAUTH_TENANT_ID, 'common'],
+				[Application::APP_ID, ConfigLexicon::COMPOSER_IMAGE_DOMAINS],
 			)->willReturnOnConsecutiveCalls(
 				'threaded',
 				'',
 				'',
 				'',
+				// Only plain host names are allowed, no scheme, path or wildcard
+				'Signatures.example.com, https://evil.example/x *.example.org,localhost',
 			);
 		$this->appConfig->expects($this->once())
 			->method('getValueBool')
@@ -376,6 +382,9 @@ class PageControllerTest extends TestCase {
 					'index-context-chat' => 'true',
 					'compact-mode' => 'false',
 					'auto-mark-as-read' => '3000',
+					'modalSize' => 'normal',
+					'shortcuts' => '{"reply":"r"}',
+					'auto-refresh' => '5',
 				]],
 				['prefill_displayName', 'Jane Doe'],
 				['importance_classification_default', true],
@@ -397,6 +406,7 @@ class PageControllerTest extends TestCase {
 		$expected = new TemplateResponse($this->appName, 'index');
 		$csp = new ContentSecurityPolicy();
 		$csp->addAllowedFrameDomain('\'self\'');
+		$csp->addAllowedImageDomain('https://signatures.example.com');
 		$expected->setContentSecurityPolicy($csp);
 
 		$response = $this->controller->index();

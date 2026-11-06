@@ -40,7 +40,7 @@ class DeleteAccountTest extends TestCase {
 	}
 
 	public function testDescription() {
-		$this->assertSame('Delete an IMAP account', $this->command->getDescription());
+		$this->assertSame('Delete a mail account', $this->command->getDescription());
 	}
 
 	public function testArguments() {

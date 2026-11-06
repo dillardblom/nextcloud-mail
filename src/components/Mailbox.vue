@@ -19,21 +19,19 @@
 			:slow-hint="t('mail', 'Indexing your messages. This can take a bit longer for larger folders.')" />
 		<EmptyMailboxSection v-else-if="isPriorityInbox && !hasMessages" key="empty" />
 		<EmptyMailbox v-else-if="!hasMessages" key="empty" />
-		<template v-else-if="hasGroupedEnvelopes && !isPriorityInbox">
-			<div v-for="[label, group] in groupEnvelopes" :key="label">
-				<SectionTitle class="section-title" :name="getLabelForGroup(label)" />
-				<EnvelopeList
-					:account="account"
-					:mailbox="mailbox"
-					:search-query="searchQuery"
-					:envelopes="group"
-					:loading-more="false"
-					:load-more-button="false"
-					:skip-transition="skipListTransition"
-					:date-grouped="true"
-					@delete="onDelete" />
-			</div>
-		</template>
+		<!-- One list for all date groups, so a selection and its actions span the groups -->
+		<EnvelopeList
+			v-else-if="hasGroupedEnvelopes && !isPriorityInbox"
+			:account="account"
+			:mailbox="mailbox"
+			:search-query="searchQuery"
+			:envelopes="groupedEnvelopesFlat"
+			:group-titles="groupTitles"
+			:loading-more="false"
+			:load-more-button="false"
+			:skip-transition="skipListTransition"
+			:date-grouped="true"
+			@delete="onDelete" />
 		<EnvelopeList
 			v-else
 			:account="account"
@@ -59,7 +57,6 @@ import EnvelopeList from './EnvelopeList.vue'
 import Error from './Error.vue'
 import Loading from './Loading.vue'
 import LoadingSkeleton from './LoadingSkeleton.vue'
-import SectionTitle from './SectionTitle.vue'
 import MailboxLockedError from '../errors/MailboxLockedError.js'
 import MailboxNotCachedError from '../errors/MailboxNotCachedError.js'
 import { matchError } from '../errors/match.js'
@@ -79,7 +76,6 @@ export default {
 		Error,
 		Loading,
 		LoadingSkeleton,
-		SectionTitle,
 	},
 
 	props: {
@@ -164,6 +160,17 @@ export default {
 			return this.envelopes
 		},
 
+		groupedEnvelopesFlat() {
+			return this.groupEnvelopes.flatMap(([, group]) => group)
+		},
+
+		/** Title of each date group, keyed by the id of its first message */
+		groupTitles() {
+			return Object.fromEntries(this.groupEnvelopes
+				.filter(([, group]) => group.length > 0)
+				.map(([label, group]) => [group[0].databaseId, this.getLabelForGroup(label)]))
+		},
+
 		hasGroupedEnvelopes() {
 			return this.groupEnvelopes && this.groupEnvelopes.length > 0
 		},
@@ -178,12 +185,22 @@ export default {
 		showLoadMore() {
 			return !this.endReached && this.paginate === 'manual'
 		},
+
+		/** Minutes between refreshes of the open list ("auto-refresh" preference), 0 for never */
+		autoRefreshMinutes() {
+			const minutes = Number.parseInt(this.mainStore.getPreference('auto-refresh', '15') ?? '15', 10)
+			return Number.isNaN(minutes) || minutes < 0 ? 15 : minutes
+		},
 	},
 
 	watch: {
-		mailbox() {
+		mailbox(mailbox) {
 			this.loadEnvelopes()
 				.then(() => {
+					if (this.mailbox.databaseId !== mailbox.databaseId) {
+						// Another folder was opened in the meantime, it syncs on its own
+						return
+					}
 					logger.debug(`syncing mailbox ${this.mailbox.databaseId} (${this.query}) after folder change`)
 					this.sync(false)
 				})
@@ -196,6 +213,10 @@ export default {
 		sortOrder() {
 			this.loadEnvelopes()
 		},
+
+		autoRefreshMinutes() {
+			this.startAutoRefresh()
+		},
 	},
 
 	created() {
@@ -204,6 +225,7 @@ export default {
 		this.bus.on('archive', this.onArchive)
 		this.bus.on('shortcut', this.handleShortcut)
 		this.loadMailboxInterval = setInterval(this.loadMailbox, 60000)
+		this.startAutoRefresh()
 	},
 
 	async mounted() {
@@ -212,8 +234,14 @@ export default {
 		}
 
 		await this.loadEnvelopes()
+		if (this.isDestroyed) {
+			return
+		}
 		logger.debug(`syncing folder ${this.mailbox.databaseId} (${this.searchQuery}) after mount`)
 		await this.sync(false)
+		if (this.isDestroyed) {
+			return
+		}
 
 		await this.prefetchOtherMailboxes()
 
@@ -226,16 +254,21 @@ export default {
 		this.bus.off('archive', this.onArchive)
 		this.bus.off('shortcut', this.handleShortcut)
 		this.stopInterval()
+		this.isDestroyed = true
+		this.envelopesAbortController?.abort()
 	},
 
 	methods: {
-		initializeCache() {
+		initializeCache(signal) {
 			this.loadingCacheInitialization = true
 			this.error = false
 
 			logger.debug(`syncing folder ${this.mailbox.databaseId} (${this.query}) during cache initialization`)
 			this.sync(true)
 				.then(() => {
+					if (signal?.aborted) {
+						return
+					}
 					this.loadingCacheInitialization = false
 
 					return this.loadEnvelopes()
@@ -244,11 +277,17 @@ export default {
 
 		async loadEnvelopes() {
 			logger.debug(`Fetching envelopes for folder ${this.mailbox.databaseId} (${this.searchQuery})`, this.mailbox)
+			// Only the latest folder/search/sort request may update the list state
+			this.envelopesAbortController?.abort()
+			const abortController = new AbortController()
+			this.envelopesAbortController = abortController
 			this.endReached = false
 			if (!this.syncedMailboxes.has(this.mailbox.databaseId + (this.searchQuery ?? ''))) {
 				// Only trigger skeleton if we didn't sync envelopes yet
 				this.loadingEnvelopes = true
 			} else {
+				// A superseded request may have left the skeleton on
+				this.loadingEnvelopes = false
 				this.skipListTransition = true
 				this.$nextTick(() => {
 					this.skipListTransition = false
@@ -263,17 +302,28 @@ export default {
 					mailboxId: this.mailbox.databaseId,
 					query: this.searchQuery,
 					limit: this.initialPageSize,
+					signal: abortController.signal,
 				})
+				if (abortController.signal.aborted) {
+					return
+				}
 
 				logger.debug(envelopes.length + ' envelopes fetched', { envelopes })
 
 				this.syncedMailboxes.add(this.mailbox.databaseId + (this.searchQuery ?? ''))
 				this.loadingEnvelopes = false
 			} catch (error) {
+				if (abortController.signal.aborted) {
+					logger.debug(`Fetching envelopes for folder ${this.mailbox.databaseId} (${this.searchQuery}) was superseded`)
+					return
+				}
 				await matchError(error, {
 					[MailboxLockedError.getName()]: async (error) => {
 						logger.info(`Mailbox ${this.mailbox.databaseId} (${this.searchQuery}) is locked`, { error })
 						await wait(15 * 1000)
+						if (abortController.signal.aborted) {
+							return
+						}
 						// Keep trying
 						await this.loadEnvelopes()
 					},
@@ -282,7 +332,7 @@ export default {
 						this.loadingEnvelopes = false
 
 						try {
-							await this.initializeCache()
+							await this.initializeCache(abortController.signal)
 						} catch (error) {
 							logger.error(`Could not initialize cache of folder ${this.mailbox.databaseId} (${this.searchQuery})`, { error })
 							this.error = error
@@ -364,6 +414,10 @@ export default {
 
 		hasSeenAcl() {
 			return mailboxHasRights(this.mailbox, 's')
+		},
+
+		hasWriteAcl() {
+			return mailboxHasRights(this.mailbox, 'w')
 		},
 
 		hasArchiveAcl() {
@@ -487,6 +541,27 @@ export default {
 						error,
 					}))
 					break
+				case 'junk': {
+					if (!this.hasWriteAcl()) {
+						return
+					}
+					logger.debug('marking as spam/not spam via shortcut', { env })
+					try {
+						// Same steps as the junk action of a message in the list
+						const removeEnvelope = await this.mainStore.moveEnvelopeToJunk(env)
+						if (!env.flags.seen) {
+							await this.mainStore.toggleEnvelopeSeen({ envelope: env })
+						}
+						if (removeEnvelope) {
+							this.onDelete(env.databaseId)
+						}
+						await this.mainStore.toggleEnvelopeJunk({ envelope: env, removeEnvelope })
+					} catch (error) {
+						logger.error('could not mark envelope as spam via shortkey', { env, error })
+						showError(t('mail', 'Could not mark message as spam'))
+					}
+					break
+				}
 				case 'refresh':
 					logger.debug(`syncing folder ${this.mailbox.databaseId} (${this.searchQuery}) per shortcut`)
 					this.sync(false)
@@ -612,9 +687,33 @@ export default {
 			}
 		},
 
+		/**
+		 * Refresh the open list every few minutes, as the refresh shortcut does. The background
+		 * sync above leaves out the inboxes, which the app syncs itself, but not the lists
+		 * built from them (all inboxes, priority inbox, a search), so those otherwise only
+		 * changed on a manual refresh.
+		 */
+		startAutoRefresh() {
+			clearInterval(this.autoRefreshInterval)
+			this.autoRefreshInterval = undefined
+			if (this.autoRefreshMinutes === 0) {
+				return
+			}
+			this.autoRefreshInterval = setInterval(async () => {
+				try {
+					logger.debug(`refreshing folder ${this.mailbox.databaseId} (${this.searchQuery}) automatically`)
+					await this.sync(false)
+				} catch (error) {
+					logger.error('Automatic refresh failed: ' + error.message, { error })
+				}
+			}, this.autoRefreshMinutes * 60 * 1000)
+		},
+
 		stopInterval() {
 			clearInterval(this.loadMailboxInterval)
 			this.loadMailboxInterval = undefined
+			clearInterval(this.autoRefreshInterval)
+			this.autoRefreshInterval = undefined
 		},
 
 		getLabelForGroup(group) {

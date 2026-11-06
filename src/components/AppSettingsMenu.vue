@@ -160,6 +160,16 @@
 					<NcRadioGroupButton :label="t('mail', 'Manually')" value="-1" :disabled="hasLoadingState('auto-mark-as-read')" />
 				</NcRadioGroup>
 
+				<NcRadioGroup :model-value="autoRefresh" :label="t('mail', 'Refresh the message list')" @update:modelValue="onChangeAutoRefresh">
+					<NcRadioGroupButton
+						v-for="minutes in [5, 15, 30, 60]"
+						:key="minutes"
+						:label="n('mail', 'Every %n minute', 'Every %n minutes', minutes)"
+						:value="String(minutes)"
+						:disabled="hasLoadingState('auto-refresh')" />
+					<NcRadioGroupButton :label="t('mail', 'Manually')" value="0" :disabled="hasLoadingState('auto-refresh')" />
+				</NcRadioGroup>
+
 				<NcRadioGroup :model-value="useBottomReplies" :label="t('mail', 'Reply position')" @update:modelValue="onToggleButtonReplies">
 					<NcRadioGroupButton :label="t('mail', 'Top')" :value="false" :disabled="hasLoadingState('reply-mode')" />
 					<NcRadioGroupButton :label="t('mail', 'Bottom')" :value="true" :disabled="hasLoadingState('reply-mode')" />
@@ -267,17 +277,11 @@
 			</NcAppSettingsSection>
 
 			<NcAppSettingsShortcutsSection>
+				<ShortcutSettings />
 				<NcHotkeyList>
 					<NcHotkey :label="t('mail', 'Compose new message')" hotkey="C" />
-					<NcHotkey :label="t('mail', 'Newer message')" hotkey="ArrowLeft" />
-					<NcHotkey :label="t('mail', 'Older message')" hotkey="ArrowRight" />
-					<NcHotkey :label="t('mail', 'Toggle star')" hotkey="S" />
-					<NcHotkey :label="t('mail', 'Toggle unread')" hotkey="U" />
-					<NcHotkey :label="t('mail', 'Archive')" hotkey="A" />
-					<NcHotkey :label="t('mail', 'Delete')" hotkey="Delete" />
 					<NcHotkey :label="t('mail', 'Search')" hotkey="Control F" />
 					<NcHotkey :label="t('mail', 'Send')" hotkey="Control Enter" />
-					<NcHotkey :label="t('mail', 'Refresh')" hotkey="R" />
 					<NcHotkey :label="t('mail', 'Heading1')" hotkey="Control Alt 1" />
 					<NcHotkey :label="t('mail', 'Heading2')" hotkey="Control Alt 2" />
 					<NcHotkey :label="t('mail', 'Heading3')" hotkey="Control Alt 3" />
@@ -285,6 +289,7 @@
 			</NcAppSettingsShortcutsSection>
 
 			<NcAppSettingsSection id="about-settings" :name="t('mail', 'About')">
+				<NcFormGroup :label="t('mail', 'Version')" :description="`${mailVersion}-db`" />
 				<NcFormGroup
 					:label="t('mail', 'Acknowledgements')"
 					:description="t('mail', 'This application includes CKEditor, an open-source editor. Copyright © CKEditor contributors. Licensed under GPLv2.')" />
@@ -325,6 +330,7 @@ import CompactMode from 'vue-material-design-icons/ListBoxOutline.vue'
 import IconMedal from 'vue-material-design-icons/MedalOutline.vue'
 import IconAdd from 'vue-material-design-icons/Plus.vue'
 import InternalAddress from './InternalAddress.vue'
+import ShortcutSettings from './ShortcutSettings.vue'
 import SmimeCertificateModal from './smime/SmimeCertificateModal.vue'
 import List from './textBlocks/List.vue'
 import TextEditor from './TextEditor.vue'
@@ -335,6 +341,7 @@ import useMainStore from '../store/mainStore.js'
 export default {
 	name: 'AppSettingsMenu',
 	components: {
+		ShortcutSettings,
 		TrustedSenders,
 		InternalAddress,
 		NcButton,
@@ -464,6 +471,11 @@ export default {
 			set(value) {
 				this.onToggleAutoMarkAsRead(value)
 			},
+		},
+
+		/** Minutes between refreshes of the open message list, "0" for manually only */
+		autoRefresh() {
+			return this.mainStore.getPreference('auto-refresh', '15')
 		},
 
 		useExternalAvatars: {
@@ -705,6 +717,22 @@ export default {
 				showError(t('mail', 'Could not update preference'))
 			} finally {
 				this.setLoadingState('auto-mark-as-read', false)
+			}
+		},
+
+		async onChangeAutoRefresh(value) {
+			this.setLoadingState('auto-refresh', true)
+
+			try {
+				await this.mainStore.savePreference({
+					key: 'auto-refresh',
+					value: String(value),
+				})
+			} catch (error) {
+				Logger.error('could not save preferences', { error })
+				showError(t('mail', 'Could not update preference'))
+			} finally {
+				this.setLoadingState('auto-refresh', false)
 			}
 		},
 

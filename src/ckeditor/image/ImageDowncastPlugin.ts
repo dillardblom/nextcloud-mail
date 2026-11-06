@@ -65,6 +65,11 @@ export default class ImageDowncastPlugin extends Plugin {
 				if (isImageFigure || item.is('element', 'img')) {
 					this._mirrorResizedWidth(writer, item)
 				}
+				// Recipients don't have the editor's stylesheet, so a figure would get the
+				// browser's default margins. The side margins come from the alignment above.
+				if (isImageFigure) {
+					writer.setStyle({ 'margin-top': '0', 'margin-bottom': '0' }, item)
+				}
 			}
 		}, { priority: 'low' })
 	}

@@ -137,6 +137,7 @@
 						:request-mdn="composerData.requestMdn"
 						:is-ai-generated="composerData.isAiGenerated"
 						:accounts="accounts"
+						:has-user-edits="userEdited"
 						@update:from-account="patchComposerData({ accountId: $event })"
 						@update:from-alias="patchComposerData({ aliasId: $event })"
 						@update:to="patchComposerData({ to: $event })"
@@ -150,6 +151,7 @@
 						@update:smime-encrypt="patchComposerData({ smimeSign: $event })"
 						@update:request-mdn="patchComposerData({ requestMdn: $event })"
 						@update:is-ai-generated="patchComposerData({ isAiGenerated: $event })"
+						@user-edit="userEdited = true"
 						@draft="onDraft"
 						@discard-draft="discardDraft"
 						@upload-attachment="onAttachmentUploading"
@@ -230,6 +232,10 @@ export default {
 			modalFirstOpen: true,
 			cookedComposerData: undefined,
 			changed: false,
+			// Changes from filling in a reply or forward don't count until the user edits something
+			userEdited: false,
+			// A new message with nothing but its signature isn't worth a draft
+			composerHasOwnContent: true,
 			largerModal: false,
 			additionalTrapElements: [],
 			recipient: {
@@ -250,6 +256,14 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * Changed by the user, not only filled in for a reply or forward, and
+		 * holding more than the signature of a new message
+		 */
+		edited() {
+			return this.changed && this.userEdited && this.composerHasOwnContent
+		},
+
 		...mapStores(useOutboxStore, useMainStore),
 		...mapState(useMainStore, ['showMessageComposer']),
 		...mapActions(useMainStore, ['getPreference']),
@@ -343,7 +357,7 @@ export default {
 			this.modalFirstOpen = false
 
 			await this.mainStore.hideMessageComposerMutation()
-			if (!this.mainStore.composerMessageIsSaved && this.changed) {
+			if (!this.mainStore.composerMessageIsSaved && this.edited) {
 				await this.onDraft(this.cookedComposerData, { showToast: true })
 			}
 		},
@@ -645,6 +659,7 @@ export default {
 			// Extract data to save drafts while the composer is not rendered.
 			// This is hacky but there is no other way for now.
 			this.cookedComposerData = this.$refs.composer.getMessageData()
+			this.composerHasOwnContent = this.$refs.composer.hasOwnContent()
 		},
 
 		async patchComposerData(data) {
@@ -654,7 +669,7 @@ export default {
 		},
 
 		onBeforeUnload(e) {
-			if (this.canSaveDraft && this.changed) {
+			if (this.canSaveDraft && this.edited) {
 				e.preventDefault()
 				e.returnValue = true
 				this.mainStore.showMessageComposerMutation()
@@ -668,11 +683,11 @@ export default {
 			await this.onMinimize()
 
 			// End the session only if all unsaved changes have been saved
-			if (this.canSaveDraft && ((this.changed && this.draftSaved) || !this.changed)) {
+			if (this.canSaveDraft && ((this.edited && this.draftSaved) || !this.edited)) {
 				logger.debug('Closing composer session due to close button click')
 				await this.mainStore.stopComposerSession({
 					restoreOriginalSendAt: true,
-					moveToImap: this.changed,
+					moveToImap: this.edited,
 					id: this.composerData.id,
 				})
 			}
@@ -684,6 +699,7 @@ export default {
 
 <style lang="scss" scoped>
 $composer-width: 600px;
+$composer-maximized-max-width: 1400px;
 $recipient-pane-width: 400px;
 $composer-height: 500px;
 $header-height: calc(var(--default-clickable-area) + calc(var(--default-grid-baseline) * 2));
@@ -711,17 +727,19 @@ $panel-max-height: calc(100vh - (var(--body-container-margin, 0px) + var(--defau
 	border-radius: var(--border-radius-large);
 	box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
 
-	&--maximized {
-		inset-inline-end: 10vw;
-		bottom: 10vh;
-		width: 80vw;
-		max-width: 80vw;
-		height: 80vh;
-		max-height: 80vh;
-	}
-
 	&--with-recipient {
 		width: calc(#{$composer-width} + #{$recipient-pane-width});
+	}
+
+	// Height from the viewport, not top: a backdrop-filter on #content-vue makes it the
+	// containing block of this fixed panel, which would shift top by the header height
+	&--maximized {
+		inset-inline: calc(var(--body-container-margin, 0px) + var(--default-grid-baseline));
+		width: auto;
+		max-width: $composer-maximized-max-width;
+		height: calc(100vh - var(--header-height, 44px) - var(--default-grid-baseline) - var(--body-container-margin, 0px) - #{$bottom-offset});
+		max-height: none;
+		margin-inline: auto;
 	}
 
 	@media (max-width: #{$composer-width}) {

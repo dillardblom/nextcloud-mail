@@ -44,6 +44,7 @@ import {
 	ImageUpload,
 	Italic,
 	Link,
+	LinkImage,
 	List,
 	Mention,
 	Paragraph,
@@ -56,12 +57,14 @@ import {
 } from 'ckeditor5'
 import { getLinkWithPicker, searchProvider } from '@nextcloud/vue/components/NcRichText'
 import TextDirectionPlugin from '../ckeditor/direction/TextDirectionPlugin.js'
+import htmlSupport from '../ckeditor/htmlSupport.js'
 import FilesImagePlugin from '../ckeditor/image/FilesImagePlugin.ts'
 import ImageDowncastPlugin from '../ckeditor/image/ImageDowncastPlugin.ts'
 import MailPlugin from '../ckeditor/mail/MailPlugin.js'
 import QuotePlugin from '../ckeditor/quote/QuotePlugin.js'
 import SignaturePlugin from '../ckeditor/signature/SignaturePlugin.js'
 import PickerPlugin from '../ckeditor/smartpicker/PickerPlugin.js'
+import CellParagraphPlugin from '../ckeditor/table/CellParagraphPlugin.js'
 import logger from '../logger.js'
 import { autoCompleteByName } from '../service/ContactIntegrationService.js'
 import { Text, toPlain } from '../util/text.js'
@@ -156,8 +159,10 @@ export default {
 				ImageResize,
 				ImageStyle,
 				ImageToolbar,
+				LinkImage,
 				FilesImagePlugin,
 				ImageDowncastPlugin,
+				CellParagraphPlugin,
 				Font,
 				RemoveFormat,
 				Base64UploadAdapter,
@@ -246,29 +251,7 @@ export default {
 					],
 				},
 
-				htmlSupport: {
-					allow: [
-						'table',
-						'tbody',
-						'td',
-						'tfoot',
-						'th',
-						'thead',
-						'tr',
-						'figure',
-						{
-							name: 'a',
-							attributes: ['title', 'name', 'id'],
-							classes: true,
-							styles: true,
-						},
-						{
-							name: 'img',
-							attributes: ['src', 'alt', 'title', 'width', 'height', 'data-cid', 'loading'],
-							styles: true,
-						},
-					],
-				},
+				htmlSupport,
 
 				// Preserve arbitrary font sizes/families on inserted or pasted
 				// HTML (e.g. app-generated signatures). Without supportAllValues
@@ -749,6 +732,14 @@ https://github.com/ckeditor/ckeditor5/issues/1142
 /* Default ckeditor value of padding-inline-start, to overwrite the global styling from server */
 .ck-content ul, .ck-content ol {
 	padding-inline-start: 40px;
+}
+
+/* Show a table layout (e.g. a signature) as it is sent: an image in a cell
+   goes out without the editor's figure margins */
+.ck-content td .image,
+.ck-content th .image {
+	margin: 0;
+	min-width: 0;
 }
 
 .ck-read-only {

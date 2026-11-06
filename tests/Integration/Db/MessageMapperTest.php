@@ -12,10 +12,13 @@ namespace OCA\Mail\Tests\Integration\Db;
 use ChristophWurst\Nextcloud\Testing\DatabaseTransaction;
 use ChristophWurst\Nextcloud\Testing\TestCase;
 use OCA\Mail\Account;
+use OCA\Mail\Address;
+use OCA\Mail\AddressList;
 use OCA\Mail\Db\MailAccount;
 use OCA\Mail\Db\MailAccountMapper;
 use OCA\Mail\Db\Mailbox;
 use OCA\Mail\Db\MailboxMapper;
+use OCA\Mail\Db\Message;
 use OCA\Mail\Db\MessageMapper;
 use OCA\Mail\Db\Recipient;
 use OCA\Mail\Db\TagMapper;
@@ -489,6 +492,54 @@ class MessageMapperTest extends TestCase {
 		self::assertEquals([], $result);
 	}
 
+	/**
+	 * Insert messages with id = uid and a sent date that increases with the uid
+	 *
+	 * @param int[] $uids
+	 */
+	private function insertMessagesSentInUidOrder(array $uids, int $mailboxId, array $subjects = []): void {
+		foreach ($uids as $uid) {
+			$qb = $this->db->getQueryBuilder();
+			$qb->insert($this->mapper->getTableName())
+				->values([
+					'id' => $qb->createNamedParameter($uid, IQueryBuilder::PARAM_INT),
+					'uid' => $qb->createNamedParameter($uid, IQueryBuilder::PARAM_INT),
+					'message_id' => $qb->createNamedParameter("<msg$uid@example.com>"),
+					'mailbox_id' => $qb->createNamedParameter($mailboxId, IQueryBuilder::PARAM_INT),
+					'subject' => $qb->createNamedParameter($subjects[$uid] ?? 'TEST'),
+					'sent_at' => $qb->createNamedParameter(1641216000 + $uid, IQueryBuilder::PARAM_INT),
+				])
+				->executeStatement();
+		}
+	}
+
+	public function testFindIdsByQueryLimitsBodyMatchesAcrossChunks(): void {
+		$mailbox = new Mailbox();
+		$mailbox->setId(1);
+		$this->insertMessagesSentInUidOrder(range(1, 1500), 1);
+
+		$newest = $this->mapper->findIdsByQuery($mailbox, new SearchQuery(), 'DESC', 3, range(1, 1500));
+		$oldest = $this->mapper->findIdsByQuery($mailbox, new SearchQuery(), 'ASC', 3, range(1, 1500));
+
+		self::assertSame([1500, 1499, 1498], $newest);
+		self::assertSame([1, 2, 3], $oldest);
+	}
+
+	public function testFindIdsByQueryReturnsSubjectMatchOnceAcrossChunks(): void {
+		$mailbox = new Mailbox();
+		$mailbox->setId(1);
+		$this->insertMessagesSentInUidOrder(range(1, 1100), 1, [1 => 'needle']);
+		$searchQuery = new SearchQuery();
+		$searchQuery->addSubject('needle');
+
+		// Body matches in two chunks, the subject match is not among them
+		$result = $this->mapper->findIdsByQuery($mailbox, $searchQuery, 'DESC', null, range(2, 1100));
+
+		self::assertCount(1100, $result);
+		self::assertSame(1100, $result[0]);
+		self::assertSame(1, $result[1099]);
+	}
+
 	public function testDeleteByUid(): void {
 		$mailbox = new Mailbox();
 		$mailbox->setId(1);
@@ -550,5 +601,75 @@ class MessageMapperTest extends TestCase {
 
 		$mails = $this->mapper->findIdsAfter($mailbox, 2, 1234567890 + 200, 5);
 		$this->assertEquals([], $mails);
+	}
+
+	public function testInsertBulkConvertsNonUtf8Headers(): void {
+		$mailAccount = new MailAccount();
+		$mailAccount->setId(1);
+		$mailAccount->setUserId('user');
+		$message = new Message();
+		$message->setUid(1);
+		$message->setMessageId('<non-utf8@example.com>');
+		$message->setMailboxId(1);
+		// Raw 8-bit Windows-1252 bytes without a declared charset
+		$message->setSubject("Caf\xe9 \x801200");
+		$message->setSentAt(1);
+		foreach (['Answered', 'Deleted', 'Draft', 'Flagged', 'Seen', 'Forwarded', 'Junk', 'Notjunk', 'Important', 'Mdnsent'] as $flag) {
+			$message->{'setFlag' . $flag}(false);
+		}
+		$message->setFrom(new AddressList([Address::fromRaw("No\xebl", 'noel@example.com')]));
+
+		$this->mapper->insertBulk(new Account($mailAccount), $message);
+
+		$qb = $this->db->getQueryBuilder();
+		$result = $qb->select('m.subject', 'r.label')
+			->from($this->mapper->getTableName(), 'm')
+			->join('m', 'mail_recipients', 'r', $qb->expr()->eq('r.message_id', 'm.id'))
+			->where($qb->expr()->eq('m.message_id', $qb->createNamedParameter('<non-utf8@example.com>')))
+			->executeQuery();
+		$row = $result->fetch();
+		$result->closeCursor();
+		$this->assertSame('Café €1200', $row['subject']);
+		$this->assertSame('Noël', $row['label']);
+	}
+
+	public function testCountThreadMessagesCountsPerThreadAcrossTheAccountsMailboxes(): void {
+		$mailboxMapper = \OCP\Server::get(\OCA\Mail\Db\MailboxMapper::class);
+		$mailboxIds = [];
+		foreach ([['INBOX', 901], ['Sent', 901], ['INBOX', 902]] as [$name, $accountId]) {
+			$mailbox = new Mailbox();
+			$mailbox->setName($name);
+			$mailbox->setAccountId($accountId);
+			$mailbox->setAttributes('[]');
+			$mailbox->setDelimiter('/');
+			$mailbox->setMessages(0);
+			$mailbox->setUnseen(0);
+			$mailbox->setSelectable(true);
+			$mailbox->setNameHash(md5($name . $accountId));
+			$mailboxIds[] = $mailboxMapper->insert($mailbox)->getId();
+		}
+		// Thread a: two in the inbox and the reply in Sent; thread b: one message; thread a also
+		// exists in another account, which must not be counted
+		foreach ([[0, '<a@x>'], [0, '<a@x>'], [1, '<a@x>'], [0, '<b@x>'], [2, '<a@x>']] as $i => [$box, $root]) {
+			$qb = $this->db->getQueryBuilder();
+			$qb->insert($this->mapper->getTableName())
+				->values([
+					'uid' => $qb->createNamedParameter($i + 1, IQueryBuilder::PARAM_INT),
+					'message_id' => $qb->createNamedParameter("<m$i@x>"),
+					'mailbox_id' => $qb->createNamedParameter($mailboxIds[$box], IQueryBuilder::PARAM_INT),
+					'subject' => $qb->createNamedParameter('TEST'),
+					'sent_at' => $qb->createNamedParameter($i, IQueryBuilder::PARAM_INT),
+					'thread_root_id' => $qb->createNamedParameter($root),
+				])
+				->executeStatement();
+		}
+		$mailAccount = new MailAccount();
+		$mailAccount->setId(901);
+		$mailAccount->setUserId('user');
+
+		$counts = $this->mapper->countThreadMessages(new Account($mailAccount), ['<a@x>', '<b@x>', '<a@x>']);
+		ksort($counts);
+
+		$this->assertSame(['<a@x>' => 3, '<b@x>' => 1], $counts);
 	}
 }
