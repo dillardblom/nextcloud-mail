@@ -28,6 +28,10 @@ describe('isOfficeAttachment', () => {
 		['text/markdown', 'README.md'],
 		['application/octet-stream', 'notes.TXT'],
 		['text/tab-separated-values', 'data.tsv'],
+		['application/octet-stream', 'report.pages'],
+		['application/x-iwork-numbers-sffnumbers', 'sheet.numbers'],
+		['application/vnd.apple.keynote', 'talk.key'],
+		['application/x-iwork-keynote-sffkey', 'talk'],
 	])('opens %s named %s in Euro-Office and ONLYOFFICE only', (mime, fileName) => {
 		expect(isOfficeAttachment(mime, fileName, ['eurooffice'])).toBe(true)
 		expect(isOfficeAttachment(mime, fileName, ['onlyoffice'])).toBe(true)
@@ -42,6 +46,9 @@ describe('isOfficeAttachment', () => {
 		['application/pdf', 'a.pdf'],
 		['image/png', 'a.png'],
 		['application/zip', 'a.zip'],
+		['application/octet-stream', 'server.key'],
+		['application/x-pem-file', 'server.key'],
+		['text/plain', 'server.key'],
 		[null, null],
 		[undefined, undefined],
 	])('does not open %s named %s', (mime, fileName) => {
@@ -55,11 +62,11 @@ describe('isOfficeAttachment', () => {
 })
 
 describe('isTextAttachment', () => {
-	it.each(['server.log', 'data.json', 'feed.XML'])('opens %s in Text', (fileName) => {
+	it.each(['server.log', 'data.json', 'feed.XML', 'a.yml', 'a.yaml', 'a.conf', 'page.html', 'page.htm', 'script.php'])('opens %s in Text', (fileName) => {
 		expect(isTextAttachment(fileName, ['text'])).toBe(true)
 	})
 
-	it.each(['page.html', 'script.php', 'run.sh', 'notes.txt', 'noextension', null, undefined])('does not open %s in Text', (fileName) => {
+	it.each(['run.sh', 'notes.txt', 'server.key', 'noextension', null, undefined])('does not open %s in Text', (fileName) => {
 		expect(isTextAttachment(fileName, ['text'])).toBe(false)
 	})
 
