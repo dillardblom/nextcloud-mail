@@ -36,7 +36,7 @@ The last column refers to the item in our own wish list.
 | `mail:account:list` and better account commands | `feat/account-commands-help` (local only) | not submitted | – |
 | Number of messages of a thread in the message list | `feat/thread-count` | not submitted | 13a |
 | Select across date groups, and "Select all" | `feat/select-across-groups` | not submitted | 15 |
-| Open an office attachment in the office app (click or menu), on its editor page; PDFs too with Euro-Office/ONLYOFFICE; also CSV, and TXT, MD and TSV with Euro-Office/ONLYOFFICE; LOG, JSON and XML open in Text | `feat/open-attachment-in-office` | not submitted | 14 |
+| Open an office attachment in the office app (click or menu), on its editor page; PDFs too with Euro-Office/ONLYOFFICE; also CSV, and TXT, MD, TSV, Pages, Numbers and Keynote with Euro-Office/ONLYOFFICE; LOG, JSON, XML, YAML, conf, HTML and PHP open in Text as source | `feat/open-attachment-in-office` | not submitted | 14 |
 | Configurable single-key shortcuts of the message list, and a key to mark as spam | `feat/configurable-shortcuts` | not submitted | – |
 | Reply among the configurable shortcuts, Ctrl/Cmd combinations (e.g. R to reply, Ctrl+R to refresh); own keys kept after a reload | `feat/configurable-reply-refresh` | not submitted | 21 |
 | Favorite among the actions shown when hovering a message | `feat/hover-favorite` | not submitted | 20 |
