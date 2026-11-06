@@ -36,7 +36,7 @@ The last column refers to the item in our own wish list.
 | `mail:account:list` and better account commands | `feat/account-commands-help` (local only) | not submitted | – |
 | Number of messages of a thread in the message list | `feat/thread-count` | not submitted | 13a |
 | Select across date groups, and "Select all" | `feat/select-across-groups` | not submitted | 15 |
-| Open an office attachment in the office app (click or menu), on its editor page; PDFs too with Euro-Office/ONLYOFFICE; also CSV, and TXT, MD and TSV with Euro-Office/ONLYOFFICE | `feat/open-attachment-in-office` | not submitted | 14 |
+| Open an office attachment in the office app (click or menu), on its editor page; PDFs too with Euro-Office/ONLYOFFICE; also CSV, and TXT, MD and TSV with Euro-Office/ONLYOFFICE; LOG, JSON and XML open in Text | `feat/open-attachment-in-office` | not submitted | 14 |
 | Configurable single-key shortcuts of the message list, and a key to mark as spam | `feat/configurable-shortcuts` | not submitted | – |
 | Reply among the configurable shortcuts, Ctrl/Cmd combinations (e.g. R to reply, Ctrl+R to refresh); own keys kept after a reload | `feat/configurable-reply-refresh` | not submitted | 21 |
 | Favorite among the actions shown when hovering a message | `feat/hover-favorite` | not submitted | 20 |
@@ -60,6 +60,14 @@ occ config:app:set mail composer_image_domains --value=signatures.example.com
 ```
 
 Only plain host names are accepted; anything with a scheme, path, port or wildcard is ignored.
+
+`.log` attachments open in Text only when the server maps that extension to a text type. Add this
+to `config/mimetypemapping.json` (keep what is already there), then update the database:
+
+```
+{ "log": ["text/plain"] }
+occ maintenance:mimetype:update-db --repair-filecache
+```
 
 ## Notes for upstream
 
