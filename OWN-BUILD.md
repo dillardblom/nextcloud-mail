@@ -1,6 +1,6 @@
-# Own build (v5.12.6-db)
+# Own build (v5.13.1-db, branch `branch-5-13`)
 
-Own build of Nextcloud Mail: upstream tag v5.12.6 plus the changes below, while they wait for
+Own build of Nextcloud Mail: upstream tag v5.13.1 plus the changes below, while they wait for
 review upstream. This branch is never submitted as a pull request; every change also lives on its
 own branch (against `main` where it has been submitted upstream).
 
@@ -36,7 +36,7 @@ The last column refers to the item in our own wish list.
 | `mail:account:list` and better account commands | `feat/account-commands-help` (local only) | not submitted | – |
 | Number of messages of a thread in the message list | `feat/thread-count` | not submitted | 13a |
 | Select across date groups, and "Select all" | `feat/select-across-groups` | not submitted | 15 |
-| Open an office attachment in the office app (click or menu), on its editor page; PDFs too with Euro-Office/ONLYOFFICE | `feat/open-attachment-in-office` | not submitted | 14 |
+| Open an office attachment in the office app (click or menu), on its editor page; PDFs too with Euro-Office/ONLYOFFICE; also CSV, and TXT, MD and TSV with Euro-Office/ONLYOFFICE | `feat/open-attachment-in-office` | not submitted | 14 |
 | Configurable single-key shortcuts of the message list, and a key to mark as spam | `feat/configurable-shortcuts` | not submitted | – |
 | Reply among the configurable shortcuts, Ctrl/Cmd combinations (e.g. R to reply, Ctrl+R to refresh); own keys kept after a reload | `feat/configurable-reply-refresh` | not submitted | 21 |
 | Favorite among the actions shown when hovering a message | `feat/hover-favorite` | not submitted | 20 |
@@ -88,7 +88,7 @@ upstream version.
 
 ## Install
 
-Download `mail-v5.12.6-db.tar.gz` from the release, then on the server:
+Download `mail-v5.13.1-db.tar.gz` from the release, then on the server:
 
 1. Make a copy of the current `apps/mail` or `custom_apps/mail` folder.
 2. Unpack the package next to that folder as the web server user, and swap the two folders.
@@ -101,5 +101,10 @@ not signed by Nextcloud.
 
 ## Next base
 
-Wait for upstream 5.13 (same Vue 2 line), merge it into a new `v5.13.x-db` branch and carry the
-changes above. 6.0 (Vue 3, `main`) only once it is stable; the UI changes then need porting.
+Base `branch-5-13` follows the stable5.13 tags. To carry later work from the 5.12 build:
+`git merge v5.12.6-db`. For a new upstream 5.13.x, merge that tag.
+
+Merge with care between the 5.12 and 5.13 lines: their merge base predates 5.12, so git reports
+conflicts in files upstream did not change. Merge per file with the previous upstream tag as the base.
+
+6.0 (Vue 3, `main`) only once it is stable; the UI changes then need porting.
