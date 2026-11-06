@@ -10,8 +10,10 @@ const OFFICE_MIME = /^(application\/(msword|rtf|csv|vnd\.ms-(excel|powerpoint|wo
 const OFFICE_EXTENSION = /\.(docx?|docm|dotx?|dotm|odt|ott|rtf|xlsx?|xlsm|xltx?|xltm|ods|ots|csv|pptx?|pptm|ppsx?|ppsm|potx?|potm|odp|otp)$/i
 // Nextcloud Office has no plain text editor, and text/plain alone says nothing about the file
 // (a .log or .json is text/plain too, and their editors refuse those), so go by the extension.
-const ONLYOFFICE_EXTENSION = /\.(txt|md|tsv)$/i
-const TEXT_EXTENSION = /\.(log|json|xml)$/i
+const ONLYOFFICE_EXTENSION = /\.(txt|md|tsv|pages|numbers)$/i
+// By type only: .key is also the extension of private keys, which must not go to the document server
+const ONLYOFFICE_MIME = /^application\/(vnd\.apple\.keynote|x-iwork-keynote-sffkey)/i
+const TEXT_EXTENSION = /\.(log|json|xml|ya?ml|conf|html?|php)$/i
 
 /**
  * Whether an attachment opens in the enabled office app. Mail clients often send office files as
@@ -30,12 +32,12 @@ export function isOfficeAttachment(mime, fileName, enabledApps) {
 		return true
 	}
 	return ONLYOFFICE_APPS.some((app) => enabledApps.includes(app))
-		&& ONLYOFFICE_EXTENSION.test(fileName ?? '')
+		&& (ONLYOFFICE_EXTENSION.test(fileName ?? '') || ONLYOFFICE_MIME.test(mime ?? ''))
 }
 
 /**
  * Whether an attachment opens in the Text app: plain text files that are not office documents.
- * Scripts and web pages stay out on purpose, those are downloaded.
+ * Text shows HTML and PHP as source, it does not render or run them.
  *
  * @param {string|null|undefined} fileName the name of the attachment
  * @param {string[]} enabledApps ids of the enabled apps
