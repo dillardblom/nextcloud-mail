@@ -646,8 +646,7 @@ class MessagesController extends Controller {
 			$counter++;
 		}
 
-		$newFile = $this->userFolder->newFile($fullPath);
-		$newFile->putContent($source);
+		$this->userFolder->newFile($fullPath, $source);
 
 		return new JSONResponse();
 	}
@@ -922,8 +921,7 @@ class MessagesController extends Controller {
 					$fullPath = "$targetPath/$fileName ($counter).$fileExtension";
 					$counter++;
 				}
-				$file = $this->userFolder->newFile($fullPath);
-				$file->putContent($content);
+				$file = $this->userFolder->newFile($fullPath, $content);
 			}
 			$saved[] = ['path' => $this->userFolder->getRelativePath($file->getPath()), 'fileId' => $file->getId()];
 		}

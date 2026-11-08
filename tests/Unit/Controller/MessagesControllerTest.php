@@ -489,11 +489,8 @@ class MessagesControllerTest extends TestCase {
 			->getMock();
 		$this->userFolder->expects($this->once())
 			->method('newFile')
-			->with('Downloads/cat.jpg')
+			->with('Downloads/cat.jpg', 'abcdefg')
 			->will($this->returnValue($file));
-		$file->expects($this->once())
-			->method('putContent')
-			->with('abcdefg');
 		$file->method('getPath')->willReturn('/user/files/Downloads/cat.jpg');
 		$file->method('getId')->willReturn(42);
 		$this->userFolder->method('getRelativePath')
@@ -634,11 +631,8 @@ class MessagesControllerTest extends TestCase {
 			->getMock();
 		$this->userFolder->expects($this->once())
 			->method('newFile')
-			->with('Downloads/cat.jpg')
+			->with('Downloads/cat.jpg', 'abcdefg')
 			->will($this->returnValue($file));
-		$file->expects($this->once())
-			->method('putContent')
-			->with('abcdefg');
 		$file->method('getPath')->willReturn('/user/files/Downloads/cat.jpg');
 		$file->method('getId')->willReturn(42);
 		$this->userFolder->method('getRelativePath')
@@ -1419,7 +1413,7 @@ class MessagesControllerTest extends TestCase {
 			->getMock();
 		$this->userFolder->expects($this->once())
 			->method('newFile')
-			->with('Downloads/core_master has new results.eml')
+			->with('Downloads/core_master has new results.eml', $source)
 			->will($this->returnValue($file));
 		$this->clientFactory->expects($this->once())
 			->method('getClient')
