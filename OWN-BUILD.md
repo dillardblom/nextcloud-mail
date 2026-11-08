@@ -170,7 +170,7 @@ Not in the list: `backup/*` (local states before a squash or rewrite) and
 
 ## Install
 
-Download `mail-v5.13.1-db.tar.gz` from the release, then on the server:
+Download the newest `mail-v5.13.1-db.N.tar.gz` from the [releases](https://github.com/dillardblom/nextcloud-mail/releases), then on the server:
 
 1. Make a copy of the current `apps/mail` or `custom_apps/mail` folder.
 2. Unpack the package next to that folder as the web server user, and swap the two folders.
