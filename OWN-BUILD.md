@@ -53,7 +53,7 @@ The last column refers to the item in our own wish list.
 | Sync: no message skipped for good when it arrives during a sync (token taken before the search; new messages filtered by UID, so a missing one below the highest cached UID is synced too) | `fix/sync-token-before-search` (against `main`) | PR #14030, open | – |
 | Saving to Files leaves no empty file behind when the write is blocked (e.g. by the antivirus app) | `fix/no-empty-file-after-blocked-save` | not submitted | – |
 | Openable attachments are copied to "Mail attachments" when a message is opened (not from junk, up to 25 MB), so a click opens at once; copies unused for 7 days and unchanged move to the trash bin, changed ones stay | `feat/prefetch-attachments` | not submitted | – |
-| Virus scan of received mail with ClamAV: an infected message has its attachments blocked (download, preview, zip, Save to Files, open, forward, API) and moves to junk or trash; settings in Administration > Groupware (see below) | `feat/attachment-virus-scan` | not submitted | – |
+| Virus scan of received mail with ClamAV: an infected message has its attachments blocked (download, preview, zip, Save to Files, open, forward, API) and moves to junk or trash; settings in Administration > Groupware (see below) | `feat/attachment-virus-scan` | proposed in issue #14091 | – |
 
 ## Settings
 
@@ -163,7 +163,7 @@ builds; "main" means against upstream `main`, for a pull request.
 | `fix/html-tel-links` | main | yes | |
 | `fix/no-empty-file-after-blocked-save` | 5.12 | yes | |
 | `feat/prefetch-attachments` | 5.12 | yes | on top of `feat/open-attachment-in-office` |
-| `feat/attachment-virus-scan` | 5.12 | yes | on top of `feat/prefetch-attachments` |
+| `feat/attachment-virus-scan` | 5.12 | yes | on top of `feat/prefetch-attachments`; issue #14091 |
 
 Not in the list: `backup/*` (local states before a squash or rewrite) and
 `upstream-pr-13206` / `v5.12.2-db-pr13206` (someone else's pull request #13206, tried in a build).
