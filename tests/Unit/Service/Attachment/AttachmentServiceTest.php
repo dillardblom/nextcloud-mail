@@ -20,11 +20,13 @@ use OCA\Mail\Db\LocalAttachmentMapper;
 use OCA\Mail\Db\LocalMessage;
 use OCA\Mail\Db\Mailbox;
 use OCA\Mail\Db\Message;
+use OCA\Mail\Exception\AttachmentBlockedException;
 use OCA\Mail\Exception\ServiceException;
 use OCA\Mail\Exception\SmimeDecryptException;
 use OCA\Mail\Exception\UploadException;
 use OCA\Mail\IMAP\MessageMapper;
 use OCA\Mail\Model\IMAPMessage;
+use OCA\Mail\Service\AntiVirus\MessageScanService;
 use OCA\Mail\Service\Attachment\AttachmentService;
 use OCA\Mail\Service\Attachment\AttachmentStorage;
 use OCA\Mail\Service\Attachment\UploadedFile;
@@ -53,6 +55,7 @@ class AttachmentServiceTest extends TestCase {
 	private IMimeTypeDetector&MockObject $mimeTypeDetector;
 	private LoggerInterface&MockObject $logger;
 	private ITimeFactory&MockObject $timeFactory;
+	private MessageScanService&MockObject $messageScanService;
 	private AttachmentService $service;
 
 	protected function setUp(): void {
@@ -71,6 +74,7 @@ class AttachmentServiceTest extends TestCase {
 		$this->logger = $this->createMock(LoggerInterface::class);
 		$this->timeFactory = $this->createMock(ITimeFactory::class);
 		$this->timeFactory->method('getTime')->willReturn(123456);
+		$this->messageScanService = $this->createMock(MessageScanService::class);
 
 		$this->service = new AttachmentService(
 			$this->userFolder,
@@ -83,6 +87,7 @@ class AttachmentServiceTest extends TestCase {
 			$this->mimeTypeDetector,
 			$this->logger,
 			$this->timeFactory,
+			$this->messageScanService,
 		);
 	}
 
@@ -832,5 +837,53 @@ class AttachmentServiceTest extends TestCase {
 			->method('delete')
 			->with($userId, 2);
 		$this->service->updateLocalMessageAttachments($userId, $message, $newAttachmentIds);
+	}
+
+	private function forwardedAttachment(Mailbox $mailbox): array {
+		return [
+			'type' => 'message-attachment',
+			'mailboxId' => $mailbox->getId(),
+			'uid' => 999,
+			'id' => '2',
+			'fileName' => 'cat.jpg',
+			'mimeType' => 'text/plain',
+		];
+	}
+
+	public function testHandleAttachmentsRefusesBlockedForwardedAttachment(): void {
+		$account = $this->createConfiguredMock(Account::class, ['getUserId' => 'linus']);
+		$mailbox = new Mailbox();
+		$mailbox->setId(9);
+		$mailbox->setName('INBOX');
+		$message = new Message();
+		$message->setId(55);
+		$this->mailManager->method('getMailbox')->willReturn($mailbox);
+		$this->messageScanService->method('isEnabled')->willReturn(true);
+		$this->mailManager->method('getMessageIdForUid')->with($mailbox, 999)->willReturn(55);
+		$this->mailManager->method('getMessage')->with('linus', 55)->willReturn($message);
+		$this->messageScanService->expects(self::once())
+			->method('assertAttachmentsAllowed')
+			->with($account, $mailbox, $message)
+			->willThrowException(new AttachmentBlockedException('The message contains a virus: Eicar-Test-Signature'));
+		$this->messageMapper->expects(self::never())->method('getAttachment');
+		$this->mapper->expects(self::never())->method('insert');
+
+		$this->expectException(AttachmentBlockedException::class);
+
+		$this->service->handleAttachments($account, [$this->forwardedAttachment($mailbox)], $this->createStub(Horde_Imap_Client_Socket::class));
+	}
+
+	public function testHandleAttachmentsRefusesForwardedAttachmentOfUnknownMessage(): void {
+		$account = $this->createConfiguredMock(Account::class, ['getUserId' => 'linus']);
+		$mailbox = new Mailbox();
+		$mailbox->setId(9);
+		$this->mailManager->method('getMailbox')->willReturn($mailbox);
+		$this->messageScanService->method('isEnabled')->willReturn(true);
+		$this->mailManager->method('getMessageIdForUid')->willReturn(null);
+		$this->messageMapper->expects(self::never())->method('getAttachment');
+
+		$this->expectException(AttachmentBlockedException::class);
+
+		$this->service->handleAttachments($account, [$this->forwardedAttachment($mailbox)], $this->createStub(Horde_Imap_Client_Socket::class));
 	}
 }

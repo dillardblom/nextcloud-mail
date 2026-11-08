@@ -5,11 +5,11 @@ review upstream. This branch is never submitted as a pull request; every change 
 own branch (against `main` where it has been submitted upstream).
 
 The installable package is attached to the matching release of this repository. Its version is
-5.13.1.1: one step above the upstream number, so the database change of this build runs, and still
+5.13.1.2: above the upstream number, so the database changes of this build run, and still
 below 5.13.2, so Nextcloud replaces it with the next official Mail release from the app store;
 install the next own build instead if you want to keep these changes. Nextcloud does not install a
-lower version over it, so going back to a 5.13.1 package needs the version in its `appinfo/info.xml`
-raised. Use it at your own
+lower version over it, so going back to an older package needs the version in its
+`appinfo/info.xml` raised. Use it at your own
 risk and keep a copy of the `mail` app folder you replace.
 
 The last column refers to the item in our own wish list.
@@ -53,6 +53,7 @@ The last column refers to the item in our own wish list.
 | Sync: no message skipped for good when it arrives during a sync (token taken before the search; new messages filtered by UID, so a missing one below the highest cached UID is synced too) | `fix/sync-token-before-search` (against `main`) | PR #14030, open | – |
 | Saving to Files leaves no empty file behind when the write is blocked (e.g. by the antivirus app) | `fix/no-empty-file-after-blocked-save` | not submitted | – |
 | Openable attachments are copied to "Mail attachments" when a message is opened (not from junk, up to 25 MB), so a click opens at once; copies unused for 7 days and unchanged move to the trash bin, changed ones stay | `feat/prefetch-attachments` | not submitted | – |
+| Virus scan of received mail with ClamAV: an infected message has its attachments blocked (download, preview, zip, Save to Files, open, forward, API) and moves to junk or trash; settings in Administration > Groupware (see below) | `feat/attachment-virus-scan` | not submitted | – |
 
 ## Settings
 
@@ -65,6 +66,21 @@ occ config:app:set mail composer_image_domains --value=signatures.example.com
 ```
 
 Only plain host names are accepted; anything with a scheme, path, port or wildcard is ignored.
+
+The virus scan is set up in Administration > Groupware > Virus scan. It is off by default. Without
+an own ClamAV address, Mail uses the daemon (`tcp://host:port`) or socket of the Antivirus for files
+app; its `clamscan` executable mode is not supported. Messages larger than the stream limit of
+ClamAV count as not scannable; `antivirus_max_size` (bytes) overrides the limit taken from the
+antivirus app and should stay at or below `StreamMaxLength` in `clamd.conf`.
+
+| Setting | Default | Purpose |
+|---|---|---|
+| `antivirus_enabled` | off | Scan received messages with attachments |
+| `antivirus_infected_action` | `junk` | Move an infected message to `junk`, `trash`, or leave it (`none`) |
+| `antivirus_allow_infected_download` | off | Users may still download, open and forward infected attachments |
+| `antivirus_allow_unscanned` | off | Attachments that could not be scanned are available with a warning instead of blocked |
+| `antivirus_clamd_address` | empty | ClamAV daemon, `tcp://host:port` or `unix:///path/to/clamd.sock` |
+| `antivirus_max_size` | 0 | Largest message sent to ClamAV in bytes; 0 takes the limit of the antivirus app, else 25 MiB |
 
 `.log` attachments open in Text only when the server maps that extension to a text type. Add this
 to `config/mimetypemapping.json` (keep what is already there), then update the database:

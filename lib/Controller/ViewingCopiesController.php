@@ -13,10 +13,12 @@ use OCA\Mail\Account;
 use OCA\Mail\Contracts\IMailManager;
 use OCA\Mail\Db\Mailbox;
 use OCA\Mail\Db\Message;
+use OCA\Mail\Exception\AttachmentBlockedException;
 use OCA\Mail\Exception\ClientException;
 use OCA\Mail\Exception\ServiceException;
 use OCA\Mail\Http\TrapError;
 use OCA\Mail\Service\AccountService;
+use OCA\Mail\Service\AntiVirus\MessageScanService;
 use OCA\Mail\Service\Attachment\ViewingCopyService;
 use OCA\Mail\Service\DelegationService;
 use OCP\AppFramework\Controller;
@@ -41,6 +43,7 @@ class ViewingCopiesController extends Controller {
 		private IMailManager $mailManager,
 		private DelegationService $delegationService,
 		private ViewingCopyService $viewingCopyService,
+		private MessageScanService $messageScanService,
 	) {
 		parent::__construct($appName, $request);
 	}
@@ -65,7 +68,8 @@ class ViewingCopiesController extends Controller {
 
 	/**
 	 * Copy the attachments of a message that was just opened, so opening one is quick. Nothing is
-	 * copied from the junk mailbox, and an attachment the storage refuses is left out.
+	 * copied from the junk mailbox or from a message the virus scan blocks, and an attachment the
+	 * storage refuses is left out.
 	 *
 	 * @param int $id message id
 	 * @param string[] $attachmentIds
@@ -104,6 +108,14 @@ class ViewingCopiesController extends Controller {
 		}
 		if ($prefetch && $this->isJunk($account, $mailbox)) {
 			return new JSONResponse([]);
+		}
+		try {
+			$this->messageScanService->assertAttachmentsAllowed($account, $mailbox, $message);
+		} catch (AttachmentBlockedException $e) {
+			if ($prefetch) {
+				return new JSONResponse([]);
+			}
+			throw $e;
 		}
 
 		if (!$this->userFolder->nodeExists($targetPath)) {

@@ -23,11 +23,12 @@ function attachment(id, fileName, mime, size = 100) {
 	return { id, fileName, mime, size, downloadUrl: `/a/${id}`, mimeUrl: '', isImage: false, isCalendarEvent: false }
 }
 
-function mountAttachments(attachments) {
+function mountAttachments(attachments, blocked = false) {
 	return shallowMount(MessageAttachments, {
 		propsData: {
 			envelope: { databaseId: 41 },
 			attachments,
+			blocked,
 		},
 		mocks: { $route: { params: { threadId: 41 } } },
 		localVue,
@@ -68,5 +69,14 @@ describe('MessageAttachments prefetch', () => {
 		await new Promise(setImmediate)
 
 		expect(view.vm.viewingCopies).toEqual({})
+	})
+
+	it('copies nothing ahead and hides the bulk actions when the virus scan blocks the attachments', async () => {
+		const view = mountAttachments([attachment('2', 'file.csv', 'text/csv'), attachment('3', 'other.csv', 'text/csv')], true)
+		await new Promise(setImmediate)
+
+		expect(prefetchAttachmentsForViewing).not.toHaveBeenCalled()
+		expect(view.find('.attachments-button-wrapper').exists()).toBe(false)
+		expect(view.findComponent({ name: 'MessageAttachment' }).props('blocked')).toBe(true)
 	})
 })

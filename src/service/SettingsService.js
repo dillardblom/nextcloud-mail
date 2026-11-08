@@ -101,3 +101,22 @@ export async function setImportanceClassificationEnabledByDefault(enabledByDefau
 		enabledByDefault,
 	})
 }
+
+/**
+ * @param {{enabled: boolean, infectedAction: string, allowInfectedDownload: boolean, allowUnscanned: boolean, clamdAddress: string}} settings the admin settings of the virus scan
+ * @return {Promise<{effectiveClamdAddress: string|null}>}
+ */
+export async function updateAntiVirusSettings(settings) {
+	const url = generateUrl('/apps/mail/api/settings/antivirus')
+	const resp = await axios.put(url, settings)
+	return resp.data
+}
+
+/**
+ * @return {Promise<{reachable: boolean, message?: string}>}
+ */
+export async function testAntiVirus() {
+	const url = generateUrl('/apps/mail/api/settings/antivirus/test')
+	const resp = await axios.post(url)
+	return resp.data
+}

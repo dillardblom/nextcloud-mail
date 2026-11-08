@@ -28,6 +28,7 @@ use OCA\Mail\Db\MailAccount;
 use OCA\Mail\Db\Mailbox;
 use OCA\Mail\Db\Message as DbMessage;
 use OCA\Mail\Db\Tag;
+use OCA\Mail\Exception\AttachmentBlockedException;
 use OCA\Mail\Exception\ClientException;
 use OCA\Mail\Exception\DelegationForbiddenException;
 use OCA\Mail\Exception\ServiceException;
@@ -38,6 +39,7 @@ use OCA\Mail\Model\IMAPMessage;
 use OCA\Mail\Model\Message;
 use OCA\Mail\Service\AccountService;
 use OCA\Mail\Service\AiIntegrations\AiIntegrationsService;
+use OCA\Mail\Service\AntiVirus\MessageScanService;
 use OCA\Mail\Service\DelegationService;
 use OCA\Mail\Service\ItineraryService;
 use OCA\Mail\Service\MailManager;
@@ -136,6 +138,7 @@ class MessagesControllerTest extends TestCase {
 	private ICacheFactory&MockObject $cacheFactory;
 
 	private DelegationService|MockObject $delegationService;
+	private MessageScanService&MockObject $messageScanService;
 
 	protected function setUp(): void {
 		parent::setUp();
@@ -170,6 +173,7 @@ class MessagesControllerTest extends TestCase {
 		$this->delegationService = $this->createMock(DelegationService::class);
 		$this->delegationService->method('resolveMessageUserId')->willReturn($this->userId);
 		$this->delegationService->method('resolveMailboxUserId')->willReturn($this->userId);
+		$this->messageScanService = $this->createMock(MessageScanService::class);
 
 		$this->filenameValidator = $this->createMock(IFilenameValidator::class);
 		$this->filenameValidator->method('sanitizeFilename')
@@ -200,6 +204,7 @@ class MessagesControllerTest extends TestCase {
 			$this->aiIntegrationsService,
 			$this->cacheFactory,
 			$this->delegationService,
+			$this->messageScanService,
 		);
 
 		$this->account = $this->createMock(Account::class);
@@ -369,6 +374,7 @@ class MessagesControllerTest extends TestCase {
 			$this->aiIntegrationsService,
 			$cacheFactory,
 			$this->delegationService,
+			$this->messageScanService,
 		);
 
 		$first = $controller->getHtmlBody($messageId, true);
@@ -1517,6 +1523,7 @@ class MessagesControllerTest extends TestCase {
 			$this->aiIntegrationsService,
 			$this->cacheFactory,
 			$this->delegationService,
+			$this->messageScanService,
 		);
 
 		$actualResponse = $controller->smartReply(100);
@@ -1777,5 +1784,71 @@ class MessagesControllerTest extends TestCase {
 		$message->setMailboxId(20);
 		$this->mailManager->method('getMessage')
 			->willReturn($message);
+	}
+
+	private function mockBlockedMessage(int $id): void {
+		$message = new \OCA\Mail\Db\Message();
+		$message->setId($id);
+		$message->setMailboxId(987);
+		$message->setUid(321);
+		$mailbox = new \OCA\Mail\Db\Mailbox();
+		$mailbox->setName('INBOX');
+		$mailbox->setAccountId(17);
+		$this->mailManager->method('getMessage')->with($this->userId, $id)->willReturn($message);
+		$this->mailManager->method('getMailbox')->with($this->userId, 987)->willReturn($mailbox);
+		$this->accountService->method('find')->with($this->userId, 17)->willReturn($this->account);
+		$this->messageScanService->expects($this->once())
+			->method('assertAttachmentsAllowed')
+			->with($this->account, $mailbox, $message)
+			->willThrowException(new AttachmentBlockedException('The message contains a virus: Eicar-Test-Signature'));
+		$this->mailManager->expects($this->never())->method('getMailAttachment');
+		$this->mailManager->expects($this->never())->method('getMailAttachments');
+		$this->mailManager->expects($this->never())->method('getSource');
+	}
+
+	public function testDownloadAttachmentBlocked(): void {
+		$this->mockBlockedMessage(123);
+
+		$this->expectException(AttachmentBlockedException::class);
+
+		$this->controller->downloadAttachment(123, '2');
+	}
+
+	public function testDownloadAttachmentsBlocked(): void {
+		$this->mockBlockedMessage(123);
+
+		$this->expectException(AttachmentBlockedException::class);
+
+		$this->controller->downloadAttachments(123);
+	}
+
+	public function testSaveAttachmentBlocked(): void {
+		$this->mockBlockedMessage(123);
+		$this->userFolder->method('nodeExists')->with('Downloads')->willReturn(true);
+		$this->userFolder->method('get')->with('Downloads')->willReturn($this->createStub(Folder::class));
+		$this->userFolder->expects($this->never())->method('newFile');
+
+		$this->expectException(AttachmentBlockedException::class);
+
+		$this->controller->saveAttachment(123, '0', 'Downloads');
+	}
+
+	public function testExportBlocked(): void {
+		$this->mockBlockedMessage(123);
+
+		$this->expectException(AttachmentBlockedException::class);
+
+		$this->controller->export(123);
+	}
+
+	public function testSaveFileBlocked(): void {
+		$this->mockBlockedMessage(123);
+		$this->userFolder->method('nodeExists')->with('Downloads')->willReturn(true);
+		$this->userFolder->method('get')->with('Downloads')->willReturn($this->createStub(Folder::class));
+		$this->userFolder->expects($this->never())->method('newFile');
+
+		$this->expectException(AttachmentBlockedException::class);
+
+		$this->controller->saveFile(123, 'Downloads');
 	}
 }

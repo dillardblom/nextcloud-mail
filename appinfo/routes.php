@@ -371,6 +371,16 @@ return [
 			'verb' => 'PUT'
 		],
 		[
+			'name' => 'settings#setAntiVirus',
+			'url' => '/api/settings/antivirus',
+			'verb' => 'PUT'
+		],
+		[
+			'name' => 'settings#testAntiVirus',
+			'url' => '/api/settings/antivirus/test',
+			'verb' => 'POST'
+		],
+		[
 			'name' => 'trusted_senders#setTrusted',
 			'url' => '/api/trustedsenders/{email}',
 			'verb' => 'PUT'

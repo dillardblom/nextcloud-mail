@@ -26,6 +26,7 @@ use OCA\Mail\Model\IMAPMessage;
 use OCA\Mail\Model\SmimeData;
 use OCA\Mail\Service\AccountService;
 use OCA\Mail\Service\AliasesService;
+use OCA\Mail\Service\AntiVirus\MessageScanService;
 use OCA\Mail\Service\Attachment\AttachmentService;
 use OCA\Mail\Service\DelegationService;
 use OCA\Mail\Service\DkimService;
@@ -60,6 +61,7 @@ class MessageApiControllerTest extends TestCase {
 	private MockObject|ItineraryService $itineraryService;
 	private TrustedSenderService|MockObject $trustedSenderService;
 	private DelegationService|MockObject $delegationService;
+	private MessageScanService&MockObject $messageScanService;
 	private MessageApiController $controller;
 	private string $fromEmail = 'john@test.com';
 	private int $accountId = 1;
@@ -87,6 +89,7 @@ class MessageApiControllerTest extends TestCase {
 		$this->delegationService = $this->createMock(DelegationService::class);
 		$this->delegationService->method('resolveAccountUserId')->willReturn($this->userId);
 		$this->delegationService->method('resolveMessageUserId')->willReturn($this->userId);
+		$this->messageScanService = $this->createMock(MessageScanService::class);
 
 		$this->controller = new MessageApiController($this->appName,
 			$this->userId,
@@ -104,6 +107,7 @@ class MessageApiControllerTest extends TestCase {
 			$this->itineraryService,
 			$this->trustedSenderService,
 			$this->delegationService,
+			$this->messageScanService,
 		);
 
 		$mailAccount = new MailAccount();

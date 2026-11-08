@@ -21,6 +21,7 @@ use OCA\Mail\Db\MailAccount;
 use OCA\Mail\IMAP\IMAPClientFactory;
 use OCA\Mail\IMAP\MessageMapper;
 use OCA\Mail\Service\AccountService;
+use OCA\Mail\Service\AntiVirus\MessageScanService;
 use OCA\Mail\Service\Attachment\AttachmentService;
 use OCA\Mail\Service\Attachment\AttachmentStorage;
 use OCA\Mail\Service\DraftsService;
@@ -101,7 +102,8 @@ class DraftServiceIntegrationTest extends TestCase {
 			Server::get(IURLGenerator::class),
 			Server::get(IMimeTypeDetector::class),
 			new NullLogger(),
-			Server::get(ITimeFactory::class)
+			Server::get(ITimeFactory::class),
+			Server::get(MessageScanService::class),
 		);
 		$this->client = $this->getClient($this->account);
 		$this->mapper = Server::get(LocalMessageMapper::class);

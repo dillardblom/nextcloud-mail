@@ -9,6 +9,7 @@
 		role="region"
 		:aria-label="t('mail', 'Message body')">
 		<PhishingWarning v-if="message.phishingDetails.warning" :phishing-data="message.phishingDetails.checks" />
+		<VirusScanWarning v-if="message.virusScan" :scan="message.virusScan" />
 		<div
 			v-if="message.smime.isSigned && !message.smime.signatureIsValid"
 			class="invalid-signature-warning">
@@ -49,7 +50,7 @@
 			:signature="message.signature"
 			:message="message"
 			@translate="$emit('translate', $event)" />
-		<MessageAttachments :attachments="message.attachments" :envelope="envelope" />
+		<MessageAttachments :attachments="message.attachments" :envelope="envelope" :blocked="message.virusScan?.blocked ?? false" />
 		<div id="reply-composer" />
 		<div class="reply-buttons">
 			<div v-if="smartReplies.length > 0" class="reply-buttons__suggested">
@@ -104,6 +105,7 @@ import MessageEncryptedBody from './MessageEncryptedBody.vue'
 import MessageHTMLBody from './MessageHTMLBody.vue'
 import MessagePlainTextBody from './MessagePlainTextBody.vue'
 import PhishingWarning from './PhishingWarning.vue'
+import VirusScanWarning from './VirusScanWarning.vue'
 import { isPgpgMessage } from '../crypto/pgp.js'
 import useMainStore from '../store/mainStore.js'
 import { html, plain } from '../util/text.js'
@@ -118,6 +120,7 @@ export default {
 		MessageHTMLBody,
 		MessagePlainTextBody,
 		PhishingWarning,
+		VirusScanWarning,
 		Imip,
 		LockOffIcon,
 		ReplyIcon,

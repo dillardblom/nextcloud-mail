@@ -4,10 +4,10 @@
 -->
 
 <template>
-	<div class="attachment" :class="{ 'message-attachment--can-preview': canPreview || canOpenInApp || isAudio }">
+	<div class="attachment" :class="{ 'message-attachment--can-preview': !blocked && (canPreview || canOpenInApp || isAudio), 'message-attachment--blocked': blocked }">
 		<div class="mail-attachment-img--wrapper" @click="onClick">
 			<img
-				v-if="isImage"
+				v-if="isImage && !blocked"
 				class="mail-attached-image"
 				:src="url">
 			<img v-else class="attachment-icon" :src="mimeUrl">
@@ -17,17 +17,18 @@
 				class="attachment-name"
 				:title="label">{{ name }}
 			</span>
-			<span class="attachment-size">{{ humanReadable(size) }}</span>
+			<span v-if="blocked" class="attachment-size">{{ t('mail', 'Blocked by the virus scan') }}</span>
+			<span v-else class="attachment-size">{{ humanReadable(size) }}</span>
 		</div>
 		<audio
-			v-if="isAudio"
+			v-if="isAudio && !blocked"
 			ref="audio"
 			class="attachment-audio"
 			controls
 			preload="none"
 			:src="url"
 			:aria-label="t('mail', 'Play {name}', { name })" />
-		<NcActions :boundaries-element="boundariesElement">
+		<NcActions v-if="!blocked" :boundaries-element="boundariesElement">
 			<template v-if="!showCalendarPopover">
 				<NcActionButton
 					v-if="isCalendarEvent"
@@ -184,6 +185,11 @@ export default {
 			type: Object,
 			default: null,
 		},
+
+		blocked: {
+			type: Boolean,
+			default: false,
+		},
 	},
 
 	data() {
@@ -304,6 +310,9 @@ export default {
 		 * @param {MouseEvent} event the click
 		 */
 		onClick(event) {
+			if (this.blocked) {
+				return
+			}
 			if (this.isAudio) {
 				const audio = this.$refs.audio
 				if (audio.paused) {
@@ -451,6 +460,10 @@ export default {
 	&.message-attachment--can-preview * {
 		cursor: pointer;
 	}
+}
+
+.message-attachment--blocked .attachment-size {
+	color: var(--color-text-error);
 }
 
 .mail-attachment-img--wrapper {

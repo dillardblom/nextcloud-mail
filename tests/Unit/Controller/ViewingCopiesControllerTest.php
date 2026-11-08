@@ -16,7 +16,9 @@ use OCA\Mail\Controller\ViewingCopiesController;
 use OCA\Mail\Db\MailAccount;
 use OCA\Mail\Db\Mailbox;
 use OCA\Mail\Db\Message;
+use OCA\Mail\Exception\AttachmentBlockedException;
 use OCA\Mail\Service\AccountService;
+use OCA\Mail\Service\AntiVirus\MessageScanService;
 use OCA\Mail\Service\Attachment\ViewingCopyService;
 use OCA\Mail\Service\DelegationService;
 use OCP\AppFramework\Db\DoesNotExistException;
@@ -36,6 +38,7 @@ class ViewingCopiesControllerTest extends TestCase {
 	private AccountService&MockObject $accountService;
 	private IMailManager&MockObject $mailManager;
 	private DelegationService&MockObject $delegationService;
+	private MessageScanService&MockObject $messageScanService;
 	private ViewingCopyService&MockObject $viewingCopyService;
 	private Mailbox $mailbox;
 	private Account $account;
@@ -49,6 +52,7 @@ class ViewingCopiesControllerTest extends TestCase {
 		$this->accountService = $this->createMock(AccountService::class);
 		$this->mailManager = $this->createMock(IMailManager::class);
 		$this->delegationService = $this->createMock(DelegationService::class);
+		$this->messageScanService = $this->createMock(MessageScanService::class);
 		$this->viewingCopyService = $this->createMock(ViewingCopyService::class);
 
 		$mailAccount = new MailAccount();
@@ -81,6 +85,7 @@ class ViewingCopiesControllerTest extends TestCase {
 			$this->mailManager,
 			$this->delegationService,
 			$this->viewingCopyService,
+			$this->messageScanService,
 		);
 	}
 
@@ -176,5 +181,26 @@ class ViewingCopiesControllerTest extends TestCase {
 		$response = $this->controller()->prefetch(41, ['2'], self::TARGET);
 
 		$this->assertSame([], $response->getData());
+	}
+
+	public function testPrefetchCopiesNothingFromABlockedMessage(): void {
+		$this->messageScanService->method('assertAttachmentsAllowed')
+			->with($this->account, $this->mailbox, $this->message)
+			->willThrowException(new AttachmentBlockedException('The message contains a virus: Eicar-Test-Signature'));
+		$this->viewingCopyService->expects($this->never())->method('getCopies');
+
+		$response = $this->controller()->prefetch(41, ['2'], self::TARGET);
+
+		$this->assertSame([], $response->getData());
+	}
+
+	public function testCreateRefusesABlockedMessage(): void {
+		$this->messageScanService->method('assertAttachmentsAllowed')
+			->willThrowException(new AttachmentBlockedException('The message contains a virus: Eicar-Test-Signature'));
+		$this->viewingCopyService->expects($this->never())->method('getCopies');
+
+		$this->expectException(AttachmentBlockedException::class);
+
+		$this->controller()->create(41, '2', self::TARGET);
 	}
 }

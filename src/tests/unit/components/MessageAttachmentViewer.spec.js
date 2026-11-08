@@ -94,4 +94,18 @@ describe('MessageAttachment in the Viewer', () => {
 
 		expect(showError).toHaveBeenCalledWith(expect.stringContaining('virus'))
 	})
+
+	it('offers nothing for an attachment the virus scan blocks', async () => {
+		const open = vi.fn()
+		window.OCA = { ...window.OCA, Viewer: { availableHandlers: [{ id: 'text' }], mimetypes: [], open } }
+		saveAttachmentForViewing.mockClear()
+		const view = mountLog({ blocked: true })
+
+		await view.find('.mail-attached--content').trigger('click')
+
+		expect(saveAttachmentForViewing).not.toHaveBeenCalled()
+		expect(open).not.toHaveBeenCalled()
+		expect(view.findComponent({ name: 'NcActions' }).exists()).toBe(false)
+		expect(view.find('.attachment-size').text()).toBe('Blocked by the virus scan')
+	})
 })
