@@ -165,8 +165,8 @@ builds; "main" means against upstream `main`, for a pull request.
 | `feat/prefetch-attachments` | 5.12 | yes | on top of `feat/open-attachment-in-office` |
 | `feat/attachment-virus-scan` | 5.12 | yes | on top of `feat/prefetch-attachments` |
 
-Local only, not ours to publish: `backup/*` (states before a squash or rewrite) and
-`upstream-pr-13206` / `v5.12.2-db-pr13206` (someone else's pull request, tried locally).
+Not in the list: `backup/*` (local states before a squash or rewrite) and
+`upstream-pr-13206` / `v5.12.2-db-pr13206` (someone else's pull request #13206, tried in a build).
 
 ## Install
 
