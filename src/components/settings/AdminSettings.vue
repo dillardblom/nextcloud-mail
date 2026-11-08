@@ -199,6 +199,18 @@
 			<AntiSpamSettings />
 		</div>
 		<div class="app-description">
+			<h3>{{ t('mail', 'Virus scan') }}</h3>
+			<article>
+				<p>
+					{{ t('mail', 'Mail can scan received messages with ClamAV. The attachments of a message in which a virus is found are blocked for download, preview, saving to Files and forwarding.') }}
+				</p>
+				<p>
+					{{ t('mail', 'New messages are scanned in the background, older ones when they are opened. Scanning in the mail server or mail gateway is still recommended; this is an extra layer.') }}
+				</p>
+			</article>
+			<AntiVirusSettings />
+		</div>
+		<div class="app-description">
 			<h3>
 				{{
 					t(
@@ -289,6 +301,7 @@ import NcSettingsSection from '@nextcloud/vue/components/NcSettingsSection'
 import IconSettings from 'vue-material-design-icons/CogOutline.vue'
 import IconAdd from 'vue-material-design-icons/Plus.vue'
 import AntiSpamSettings from './AntiSpamSettings.vue'
+import AntiVirusSettings from './AntiVirusSettings.vue'
 import GmailAdminOauthSettings from './GmailAdminOauthSettings.vue'
 import MicrosoftAdminOauthSettings from './MicrosoftAdminOauthSettings.vue'
 import ProvisioningSettings from './ProvisioningSettings.vue'
@@ -316,6 +329,7 @@ export default {
 	components: {
 		GmailAdminOauthSettings,
 		AntiSpamSettings,
+		AntiVirusSettings,
 		MicrosoftAdminOauthSettings,
 		ProvisioningSettings,
 		NcSettingsSection,

@@ -21,6 +21,7 @@
 					:mime-url="attachment.mimeUrl"
 					:can-preview="canPreview(fileInfos[idx])"
 					:viewing-copy="viewingCopies[attachment.id] ?? null"
+					:blocked="blocked"
 					@open="showViewer(fileInfos[idx])" />
 			</div>
 		</div>
@@ -44,7 +45,7 @@
 			</span>
 		</NcButton>
 
-		<p v-if="moreThanOne" class="attachments-button-wrapper">
+		<p v-if="moreThanOne && !blocked" class="attachments-button-wrapper">
 			<NcButton
 				variant="tertiary"
 				size="small"
@@ -113,6 +114,11 @@ export default {
 			type: Array,
 			required: true,
 		},
+
+		blocked: {
+			type: Boolean,
+			default: false,
+		},
 	},
 
 	data() {
@@ -172,6 +178,9 @@ export default {
 		async prefetch() {
 			const messageId = this.envelope.databaseId
 			this.viewingCopies = {}
+			if (this.blocked) {
+				return
+			}
 			const enabledApps = Object.keys(window.OC?.appswebroots ?? {})
 			const ids = this.attachments
 				.filter((attachment) => attachment.size <= PREFETCH_MAX_SIZE && opensInApp(attachment.mime, attachment.fileName, enabledApps))

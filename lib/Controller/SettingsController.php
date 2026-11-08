@@ -11,18 +11,23 @@ namespace OCA\Mail\Controller;
 
 use OCA\Mail\AppInfo\Application;
 use OCA\Mail\ConfigLexicon;
+use OCA\Mail\Exception\ScannerUnavailableException;
 use OCA\Mail\Exception\ValidationException;
 use OCA\Mail\Http\JsonResponse as HttpJsonResponse;
 use OCA\Mail\Service\AntiSpamService;
+use OCA\Mail\Service\AntiVirus\AntiVirusSettings;
+use OCA\Mail\Service\AntiVirus\ClamdScanner;
 use OCA\Mail\Service\Classification\ClassificationSettingsService;
 use OCA\Mail\Service\Provisioning\Manager as ProvisioningManager;
 use OCP\AppFramework\Controller;
+use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\OpenAPI;
 use OCP\AppFramework\Http\JSONResponse;
 use OCP\IAppConfig;
 use OCP\IRequest;
 use Psr\Container\ContainerInterface;
 use function array_merge;
+use function trim;
 
 #[OpenAPI(scope: OpenAPI::SCOPE_IGNORE)]
 class SettingsController extends Controller {
@@ -33,6 +38,8 @@ class SettingsController extends Controller {
 		private IAppConfig $appConfig,
 		private ContainerInterface $container,
 		private ClassificationSettingsService $classificationSettingsService,
+		private AntiVirusSettings $antiVirusSettings,
+		private ClamdScanner $clamdScanner,
 	) {
 		parent::__construct(Application::APP_ID, $request);
 	}
@@ -116,6 +123,36 @@ class SettingsController extends Controller {
 	public function setImportanceClassificationEnabledByDefault(bool $enabledByDefault): JSONResponse {
 		$this->classificationSettingsService->setClassificationEnabledByDefault($enabledByDefault);
 		return new JSONResponse([]);
+	}
+
+	public function setAntiVirus(
+		bool $enabled,
+		string $infectedAction,
+		bool $allowInfectedDownload,
+		bool $allowUnscanned,
+		string $clamdAddress,
+	): JSONResponse {
+		try {
+			$this->antiVirusSettings->setInfectedAction($infectedAction);
+			$this->antiVirusSettings->setClamdAddress(trim($clamdAddress));
+		} catch (ValidationException $e) {
+			return HttpJsonResponse::fail([$e->getFields()], Http::STATUS_UNPROCESSABLE_ENTITY);
+		}
+		$this->antiVirusSettings->setAllowInfectedDownload($allowInfectedDownload);
+		$this->antiVirusSettings->setAllowUnscanned($allowUnscanned);
+		$this->antiVirusSettings->setEnabled($enabled);
+		return new JSONResponse([
+			'effectiveClamdAddress' => $this->antiVirusSettings->getEffectiveClamdAddress(),
+		]);
+	}
+
+	public function testAntiVirus(): JSONResponse {
+		try {
+			$this->clamdScanner->ping();
+		} catch (ScannerUnavailableException $e) {
+			return new JSONResponse(['reachable' => false, 'message' => $e->getMessage()]);
+		}
+		return new JSONResponse(['reachable' => true]);
 	}
 
 }

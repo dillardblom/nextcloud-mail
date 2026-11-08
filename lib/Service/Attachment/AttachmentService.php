@@ -20,11 +20,13 @@ use OCA\Mail\Db\LocalAttachmentMapper;
 use OCA\Mail\Db\LocalMessage;
 use OCA\Mail\Db\Mailbox;
 use OCA\Mail\Db\Message;
+use OCA\Mail\Exception\AttachmentBlockedException;
 use OCA\Mail\Exception\AttachmentNotFoundException;
 use OCA\Mail\Exception\ServiceException;
 use OCA\Mail\Exception\SmimeDecryptException;
 use OCA\Mail\Exception\UploadException;
 use OCA\Mail\IMAP\MessageMapper;
+use OCA\Mail\Service\AntiVirus\MessageScanService;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\Files\File;
@@ -57,6 +59,7 @@ class AttachmentService implements IAttachmentService {
 		private IMimeTypeDetector $mimeTypeDetector,
 		private LoggerInterface $logger,
 		private ITimeFactory $timeFactory,
+		private MessageScanService $messageScanService,
 	) {
 		$this->userFolder = $userFolder;
 	}
@@ -215,6 +218,7 @@ class AttachmentService implements IAttachmentService {
 	/**
 	 * @param array $attachments
 	 * @return int[]
+	 * @throws AttachmentBlockedException when an attachment of a received message is blocked by the virus scan
 	 */
 	public function handleAttachments(Account $account, array $attachments, \Horde_Imap_Client_Socket $client): array {
 		$attachmentIds = [];
@@ -310,10 +314,12 @@ class AttachmentService implements IAttachmentService {
 	 * @param mixed[] $attachment
 	 * @param \Horde_Imap_Client_Socket $client
 	 * @return int|null
+	 * @throws AttachmentBlockedException
 	 */
 	private function handleForwardedMessageAttachment(Account $account, array $attachment, \Horde_Imap_Client_Socket $client): ?int {
 		$attachmentMessage = $this->mailManager->getMessage($account->getUserId(), (int)$attachment['id']);
 		$mailbox = $this->mailManager->getMailbox($account->getUserId(), $attachmentMessage->getMailboxId());
+		$this->messageScanService->assertAttachmentsAllowed($account, $mailbox, $attachmentMessage);
 		$fullText = $this->messageMapper->getFullText(
 			$client,
 			$mailbox->getName(),
@@ -348,9 +354,21 @@ class AttachmentService implements IAttachmentService {
 	 * @param \Horde_Imap_Client_Socket $client
 	 * @return int
 	 * @throws DoesNotExistException
+	 * @throws AttachmentBlockedException
 	 */
 	private function handleForwardedAttachment(Account $account, array $attachment, \Horde_Imap_Client_Socket $client): ?int {
 		$mailbox = $this->mailManager->getMailbox($account->getUserId(), $attachment['mailboxId']);
+		if ($this->messageScanService->isEnabled()) {
+			$messageId = $this->mailManager->getMessageIdForUid($mailbox, (int)$attachment['uid']);
+			if ($messageId === null) {
+				throw new AttachmentBlockedException('The message of the attachment is unknown, so it was not scanned for viruses');
+			}
+			$this->messageScanService->assertAttachmentsAllowed(
+				$account,
+				$mailbox,
+				$this->mailManager->getMessage($account->getUserId(), $messageId),
+			);
+		}
 
 		$imapAttachment = $this->messageMapper->getAttachment(
 			$client,

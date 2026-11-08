@@ -29,6 +29,7 @@ use OCA\Mail\IMAP\IMAPClientFactory;
 use OCA\Mail\Model\SmimeData;
 use OCA\Mail\Service\AccountService;
 use OCA\Mail\Service\AiIntegrations\AiIntegrationsService;
+use OCA\Mail\Service\AntiVirus\MessageScanService;
 use OCA\Mail\Service\DelegationService;
 use OCA\Mail\Service\ItineraryService;
 use OCA\Mail\Service\SmimeService;
@@ -57,6 +58,7 @@ use OCP\IURLGenerator;
 use OCP\Lock\LockedException;
 use Psr\Log\LoggerInterface;
 use function array_map;
+use function array_merge;
 
 #[OpenAPI(scope: OpenAPI::SCOPE_IGNORE)]
 class MessagesController extends Controller {
@@ -90,6 +92,7 @@ class MessagesController extends Controller {
 		private AiIntegrationsService $aiIntegrationService,
 		private ICacheFactory $cacheFactory,
 		private DelegationService $delegationService,
+		private MessageScanService $messageScanService,
 	) {
 		parent::__construct($appName, $request);
 		$this->l10n = $l10n;
@@ -241,6 +244,15 @@ class MessagesController extends Controller {
 		$json['mailboxId'] = $mailbox->getId();
 		$json['databaseId'] = $message->getId();
 		$json['isSenderTrusted'] = $this->isSenderTrusted($message);
+		$scan = null;
+		if ($json['attachments'] !== [] || $json['inlineAttachments'] !== []) {
+			$scan = $this->messageScanService->getVerdict($account, $mailbox, $message);
+		}
+		if ($scan !== null) {
+			$json['virusScan'] = array_merge($scan->jsonSerialize(), [
+				'blocked' => $this->messageScanService->isBlocked($scan),
+			]);
+		}
 
 		$smimeData = new SmimeData();
 		$smimeData->setIsEncrypted($message->isEncrypted() || $imapMessage->isEncrypted());
@@ -257,8 +269,10 @@ class MessagesController extends Controller {
 
 		$response = new JSONResponse($json);
 
-		// Enable caching
-		$response->cacheFor(60 * 60, false, true);
+		// Enable caching, but ask again while the scanner could not be reached
+		if ($scan === null || !$scan->isTemporary()) {
+			$response->cacheFor(60 * 60, false, true);
+		}
 
 		return $response;
 	}
@@ -562,6 +576,7 @@ class MessagesController extends Controller {
 		} catch (DoesNotExistException $e) {
 			return new JSONResponse([], Http::STATUS_FORBIDDEN);
 		}
+		$this->messageScanService->assertAttachmentsAllowed($account, $mailbox, $message);
 
 		$client = $this->clientFactory->getClient($account);
 		try {
@@ -619,6 +634,7 @@ class MessagesController extends Controller {
 		} catch (DoesNotExistException $e) {
 			return new JSONResponse([], Http::STATUS_FORBIDDEN);
 		}
+		$this->messageScanService->assertAttachmentsAllowed($account, $mailbox, $message);
 
 		$client = $this->clientFactory->getClient($account);
 		try {
@@ -765,6 +781,7 @@ class MessagesController extends Controller {
 		} catch (DoesNotExistException $e) {
 			return new JSONResponse([], Http::STATUS_FORBIDDEN);
 		}
+		$this->messageScanService->assertAttachmentsAllowed($account, $mailbox, $message);
 
 		$attachment = $this->mailManager->getMailAttachment(
 			$account,
@@ -815,6 +832,7 @@ class MessagesController extends Controller {
 		} catch (DoesNotExistException $e) {
 			return new JSONResponse([], Http::STATUS_FORBIDDEN);
 		}
+		$this->messageScanService->assertAttachmentsAllowed($account, $mailbox, $message);
 
 		$attachments = $this->mailManager->getMailAttachments($account, $mailbox, $message);
 		$zip = new ZipResponse($this->request, 'attachments');
@@ -870,6 +888,7 @@ class MessagesController extends Controller {
 		} catch (DoesNotExistException $e) {
 			return new JSONResponse([], Http::STATUS_FORBIDDEN);
 		}
+		$this->messageScanService->assertAttachmentsAllowed($account, $mailbox, $message);
 
 		/** @var Attachment[] $attachments */
 		$attachments = [];

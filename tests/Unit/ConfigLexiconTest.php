@@ -51,6 +51,12 @@ class ConfigLexiconTest extends TestCase {
 			ConfigLexicon::MICROSOFT_OAUTH_TENANT_ID => [ValueType::STRING, 'common'],
 			ConfigLexicon::ANTISPAM_REPORTING_SPAM => [ValueType::STRING, null],
 			ConfigLexicon::ANTISPAM_REPORTING_HAM => [ValueType::STRING, null],
+			ConfigLexicon::ANTIVIRUS_ENABLED => [ValueType::BOOL, '0'],
+			ConfigLexicon::ANTIVIRUS_INFECTED_ACTION => [ValueType::STRING, 'junk'],
+			ConfigLexicon::ANTIVIRUS_ALLOW_INFECTED_DOWNLOAD => [ValueType::BOOL, '0'],
+			ConfigLexicon::ANTIVIRUS_ALLOW_UNSCANNED => [ValueType::BOOL, '0'],
+			ConfigLexicon::ANTIVIRUS_CLAMD_ADDRESS => [ValueType::STRING, ''],
+			ConfigLexicon::ANTIVIRUS_MAX_SIZE => [ValueType::INT, '0'],
 		];
 	}
 

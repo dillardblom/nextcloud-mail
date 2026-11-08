@@ -15,6 +15,7 @@ use OCA\Mail\Integration\GoogleIntegration;
 use OCA\Mail\Integration\MicrosoftIntegration;
 use OCA\Mail\Service\AiIntegrations\AiIntegrationsService;
 use OCA\Mail\Service\AntiSpamService;
+use OCA\Mail\Service\AntiVirus\AntiVirusSettings;
 use OCA\Mail\Service\Classification\ClassificationSettingsService;
 use OCA\Mail\Service\Provisioning\Manager as ProvisioningManager;
 use OCP\AppFramework\Http\TemplateResponse;
@@ -36,6 +37,7 @@ class AdminSettings implements ISettings {
 		private AiIntegrationsService $aiIntegrationsService,
 		private Defaults $themingDefaults,
 		private ClassificationSettingsService $classificationSettingsService,
+		private AntiVirusSettings $antiVirusSettings,
 	) {
 	}
 
@@ -106,6 +108,18 @@ class AdminSettings implements ISettings {
 		$this->initialStateService->provideInitialState(
 			'microsoft_oauth_docs',
 			$this->themingDefaults->buildDocLinkToKey('admin-groupware-oauth-microsoft'),
+		);
+
+		$this->initialStateService->provideInitialState(
+			'antivirus_settings',
+			[
+				'enabled' => $this->antiVirusSettings->isEnabled(),
+				'infectedAction' => $this->antiVirusSettings->getInfectedAction(),
+				'allowInfectedDownload' => $this->antiVirusSettings->allowsInfectedDownload(),
+				'allowUnscanned' => $this->antiVirusSettings->allowsUnscanned(),
+				'clamdAddress' => $this->antiVirusSettings->getClamdAddress(),
+				'effectiveClamdAddress' => $this->antiVirusSettings->getEffectiveClamdAddress(),
+			],
 		);
 
 		return new TemplateResponse(Application::APP_ID, 'settings-admin');

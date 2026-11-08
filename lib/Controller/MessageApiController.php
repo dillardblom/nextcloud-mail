@@ -10,6 +10,7 @@ namespace OCA\Mail\Controller;
 
 use OCA\Mail\Contracts\IDkimService;
 use OCA\Mail\Db\LocalMessage;
+use OCA\Mail\Exception\AttachmentBlockedException;
 use OCA\Mail\Exception\ClientException;
 use OCA\Mail\Exception\ServiceException;
 use OCA\Mail\Exception\SmimeDecryptException;
@@ -20,6 +21,7 @@ use OCA\Mail\Model\SmimeData;
 use OCA\Mail\ResponseDefinitions;
 use OCA\Mail\Service\AccountService;
 use OCA\Mail\Service\AliasesService;
+use OCA\Mail\Service\AntiVirus\MessageScanService;
 use OCA\Mail\Service\Attachment\AttachmentService;
 use OCA\Mail\Service\Attachment\UploadedFile;
 use OCA\Mail\Service\DelegationService;
@@ -67,6 +69,7 @@ class MessageApiController extends OCSController {
 		private ItineraryService $itineraryService,
 		private TrustedSenderService $trustedSenderService,
 		private DelegationService $delegationService,
+		private MessageScanService $messageScanService,
 	) {
 		parent::__construct($appName, $request);
 	}
@@ -319,9 +322,10 @@ class MessageApiController extends OCSController {
 	 * Get the raw rfc2822 email
 	 *
 	 * @param int $id the id of the message
-	 * @return DataResponse<Http::STATUS_OK, ?string, array{}>|DataResponse<Http::STATUS_NOT_FOUND, string, array{}>
+	 * @return DataResponse<Http::STATUS_OK, ?string, array{}>|DataResponse<Http::STATUS_FORBIDDEN|Http::STATUS_NOT_FOUND, string, array{}>
 	 *
 	 * 200: Message found
+	 * 403: Message is blocked by the virus scan
 	 * 404: User was not logged in
 	 * 404: Message, Account or Mailbox not found
 	 * 404: Could not find message on IMAP
@@ -342,6 +346,12 @@ class MessageApiController extends OCSController {
 		} catch (ClientException|DoesNotExistException $e) {
 			$this->logger->error('Message, Account or Mailbox not found', ['exception' => $e->getMessage()]);
 			return new DataResponse('Message, Account or Mailbox not found', Http::STATUS_NOT_FOUND);
+		}
+
+		try {
+			$this->messageScanService->assertAttachmentsAllowed($account, $mailbox, $message);
+		} catch (AttachmentBlockedException $e) {
+			return new DataResponse($e->getMessage(), Http::STATUS_FORBIDDEN);
 		}
 
 		$client = $this->clientFactory->getClient($account);
@@ -383,9 +393,10 @@ class MessageApiController extends OCSController {
 	 *
 	 * @param int $id the mail id
 	 * @param string $attachmentId the attachment id
-	 * @return DataResponse<Http::STATUS_OK, MailMessageApiAttachment, array{}>|DataResponse<Http::STATUS_NOT_FOUND|Http::STATUS_INTERNAL_SERVER_ERROR, string, array{}>
+	 * @return DataResponse<Http::STATUS_OK, MailMessageApiAttachment, array{}>|DataResponse<Http::STATUS_FORBIDDEN|Http::STATUS_NOT_FOUND|Http::STATUS_INTERNAL_SERVER_ERROR, string, array{}>
 	 *
 	 * 200: Message found
+	 * 403: Message is blocked by the virus scan
 	 * 404: User was not logged in
 	 * 404: Message, Account or Mailbox not found
 	 * 404: Could not find attachment
@@ -407,6 +418,12 @@ class MessageApiController extends OCSController {
 			$account = $this->accountService->find($effectiveUserId, $mailbox->getAccountId());
 		} catch (DoesNotExistException|ClientException $e) {
 			return new DataResponse('Message, Account or Mailbox not found', Http::STATUS_NOT_FOUND);
+		}
+
+		try {
+			$this->messageScanService->assertAttachmentsAllowed($account, $mailbox, $message);
+		} catch (AttachmentBlockedException $e) {
+			return new DataResponse($e->getMessage(), Http::STATUS_FORBIDDEN);
 		}
 
 		try {

@@ -36,6 +36,12 @@ class ConfigLexicon implements ILexicon {
 	public const MICROSOFT_OAUTH_TENANT_ID = 'microsoft_oauth_tenant_id';
 	public const ANTISPAM_REPORTING_SPAM = 'antispam_reporting_spam';
 	public const ANTISPAM_REPORTING_HAM = 'antispam_reporting_ham';
+	public const ANTIVIRUS_ENABLED = 'antivirus_enabled';
+	public const ANTIVIRUS_INFECTED_ACTION = 'antivirus_infected_action';
+	public const ANTIVIRUS_ALLOW_INFECTED_DOWNLOAD = 'antivirus_allow_infected_download';
+	public const ANTIVIRUS_ALLOW_UNSCANNED = 'antivirus_allow_unscanned';
+	public const ANTIVIRUS_CLAMD_ADDRESS = 'antivirus_clamd_address';
+	public const ANTIVIRUS_MAX_SIZE = 'antivirus_max_size';
 
 	#[\Override]
 	public function getStrictness(): Strictness {
@@ -112,6 +118,44 @@ class ConfigLexicon implements ILexicon {
 				self::ANTISPAM_REPORTING_HAM,
 				ValueType::STRING,
 				definition: 'Email address ham (not spam) reports are forwarded to',
+			),
+			new Entry(
+				self::ANTIVIRUS_ENABLED,
+				ValueType::BOOL,
+				defaultRaw: false,
+				definition: 'Whether received messages with attachments are scanned for viruses with ClamAV',
+			),
+			new Entry(
+				self::ANTIVIRUS_INFECTED_ACTION,
+				ValueType::STRING,
+				defaultRaw: 'junk',
+				definition: 'Where an infected message is moved to: junk, trash or none',
+			),
+			new Entry(
+				self::ANTIVIRUS_ALLOW_INFECTED_DOWNLOAD,
+				ValueType::BOOL,
+				defaultRaw: false,
+				definition: 'Whether users may still download, open or forward the attachments of an infected message',
+			),
+			new Entry(
+				self::ANTIVIRUS_ALLOW_UNSCANNED,
+				ValueType::BOOL,
+				defaultRaw: false,
+				definition: 'Whether attachments that could not be scanned are available with a warning instead of blocked',
+			),
+			new Entry(
+				self::ANTIVIRUS_CLAMD_ADDRESS,
+				ValueType::STRING,
+				defaultRaw: '',
+				definition: 'ClamAV daemon to scan with, as tcp://host:port or unix:///path/to/clamd.sock',
+				note: 'When empty, the daemon configured in the Antivirus for files app is used',
+			),
+			new Entry(
+				self::ANTIVIRUS_MAX_SIZE,
+				ValueType::INT,
+				defaultRaw: 0,
+				definition: 'Largest message in bytes that is sent to ClamAV; larger messages count as not scannable',
+				note: 'When 0, the stream length of the Antivirus for files app is used, else 25 MiB. Keep it at or below StreamMaxLength of clamd',
 			),
 		];
 	}
