@@ -106,8 +106,10 @@ import Logger from '../logger.js'
 import { downloadAttachment, saveAttachmentForViewing, saveAttachmentToFiles } from '../service/AttachmentService.js'
 import { getUserCalendars, importCalendarEvent } from '../service/DAVService.js'
 import { pickFolder } from '../util/filePicker.js'
-import { hasTextViewer, isOfficeAttachment, isTextAttachment } from '../util/officeAttachment.js'
+import { hasTextViewer, isOfficeAttachment, isPdfForOffice, isTextAttachment } from '../util/officeAttachment.js'
 import { fileUrl, officeUrl } from '../util/officeUrl.js'
+
+const HTTP_UNPROCESSABLE_ENTITY = 422
 
 export default {
 	name: 'MessageAttachment',
@@ -177,6 +179,11 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
+		viewingCopy: {
+			type: Object,
+			default: null,
+		},
 	},
 
 	data() {
@@ -234,15 +241,8 @@ export default {
 				&& /\.(mp3|ogg|oga|opus|wav|m4a|aac|flac|weba)$/i.test(this.fileName ?? '')
 		},
 
-		/**
-		 * A PDF while Euro-Office or ONLYOFFICE is enabled: they take over the PDF view of the
-		 * Viewer, which then fails on an attachment that is not a file yet ("FileId is empty").
-		 * Saved first, it opens in their editor like an office document.
-		 */
 		isPdfForOffice() {
-			const enabled = Object.keys(window.OC?.appswebroots ?? {})
-			return ['onlyoffice', 'eurooffice'].some((app) => enabled.includes(app))
-				&& (this.mime === 'application/pdf' || /\.pdf$/i.test(this.fileName ?? ''))
+			return isPdfForOffice(this.mime, this.fileName, Object.keys(window.OC?.appswebroots ?? {}))
 		},
 
 		boundariesElement() {
@@ -321,8 +321,8 @@ export default {
 		},
 
 		/**
-		 * Save the attachment in the "Mail attachments" folder of the user's files and open it
-		 * there, which starts the office app. Opening it again reuses the saved copy.
+		 * Open the copy of the attachment in the "Mail attachments" folder of the user's files,
+		 * made when the message was opened or else now.
 		 */
 		async openInOffice() {
 			if (this.canOpenInText && hasTextViewer(window.OCA?.Viewer)) {
@@ -333,7 +333,7 @@ export default {
 			// Open the tab now: browsers block a new tab opened after an await
 			const tab = window.open('', '_blank')
 			try {
-				const file = await saveAttachmentForViewing(this.messageId, this.id, '/' + t('mail', 'Mail attachments'))
+				const file = await this.getViewingCopy()
 				const url = this.canOpenInText
 					? fileUrl(file.fileId)
 					: officeUrl(file.fileId, Object.keys(window.OC?.appswebroots ?? {}))
@@ -345,7 +345,7 @@ export default {
 			} catch (error) {
 				tab?.close()
 				Logger.error('could not open the attachment in office', { error })
-				showError(t('mail', 'Could not open the attachment'))
+				this.showOpenError(error)
 			} finally {
 				this.openingInOffice = false
 			}
@@ -354,14 +354,27 @@ export default {
 		async openInViewer() {
 			this.openingInOffice = true
 			try {
-				const file = await saveAttachmentForViewing(this.messageId, this.id, '/' + t('mail', 'Mail attachments'))
+				const file = await this.getViewingCopy()
 				window.OCA.Viewer.open({ path: file.path })
 			} catch (error) {
 				Logger.error('could not open the attachment in the viewer', { error })
-				showError(t('mail', 'Could not open the attachment'))
+				this.showOpenError(error)
 			} finally {
 				this.openingInOffice = false
 			}
+		},
+
+		async getViewingCopy() {
+			return this.viewingCopy
+				?? await saveAttachmentForViewing(this.messageId, this.id, '/' + t('mail', 'Mail attachments'))
+		},
+
+		showOpenError(error) {
+			if (error?.response?.status === HTTP_UNPROCESSABLE_ENTITY) {
+				showError(t('mail', 'The attachment was refused by the server, for example because it contains a virus'))
+				return
+			}
+			showError(t('mail', 'Could not open the attachment'))
 		},
 
 		download() {
