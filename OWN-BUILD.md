@@ -48,6 +48,7 @@ The last column refers to the item in our own wish list.
 | Composer shows images from hosts the admin allows (setting `composer_image_domains`, see below) | `fix/signature-html-formatting` | not submitted | – |
 | Phone number links (`tel:`) in received HTML messages stay clickable | `fix/html-tel-links` (against `main`) | not submitted | – |
 | Sync: no message skipped for good when it arrives during a sync (token taken before the search; new messages filtered by UID, so a missing one below the highest cached UID is synced too) | `fix/sync-token-before-search` (against `main`) | PR #14030, open | – |
+| Saving to Files leaves no empty file behind when the write is blocked (e.g. by the antivirus app) | `fix/no-empty-file-after-blocked-save` | not submitted | – |
 
 ## Settings
 
