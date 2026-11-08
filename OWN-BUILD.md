@@ -37,11 +37,11 @@ The last column refers to the item in our own wish list.
 | Type to find an account or alias in the From field | `feat/searchable-from` | not submitted | 8 |
 | Convert non-UTF-8 subjects and recipients before insert | `fix/utf8-recipient-labels` | PR #13782, open | – |
 | `mail:account:list` and better account commands | `feat/account-commands-help` | not submitted | – |
-| Number of messages of a thread in the message list | `feat/thread-count` | not submitted | 13a |
+| Number of messages of a thread in the message list, also in the unread dot | `feat/thread-count` | not submitted | 13a |
 | Select across date groups, and "Select all" | `feat/select-across-groups` | not submitted | 15 |
 | Open an office attachment in the office app (click or menu), on its editor page; PDFs too with Euro-Office/ONLYOFFICE; also CSV, and TXT, MD, TSV, Pages, Numbers and Keynote with Euro-Office/ONLYOFFICE; LOG, JSON, XML, YAML, conf, HTML and PHP open in Text as source, in the Viewer over Mail | `feat/open-attachment-in-office` | not submitted | 14 |
 | Configurable single-key shortcuts of the message list, and a key to mark as spam | `feat/configurable-shortcuts` | not submitted | – |
-| Reply among the configurable shortcuts, Ctrl/Cmd combinations (e.g. R to reply, Ctrl+R to refresh); own keys kept after a reload | `feat/configurable-reply-refresh` | not submitted | 21 |
+| Reply among the configurable shortcuts, Ctrl/Cmd combinations (e.g. R to reply, Ctrl+R to refresh); own keys kept after a reload; a plain reply key can still be typed in the composer | `feat/configurable-reply-refresh` | not submitted | 21 |
 | Favorite among the actions shown when hovering a message | `feat/hover-favorite` | not submitted | 20 |
 | Refresh the open message list every 5/15/30/60 minutes (default 15) or manually | `feat/auto-refresh` | not submitted | 19 |
 | In a thread, save or open the attachment of its own message (was: same attachment number of the selected message, e.g. an .eml instead of a PDF) | `fix/attachment-of-its-own-message` (upstream: `fix/attachment-save-own-message`) | PR #14007, **merged** in `main` ("Save to Files" part; opening in office is own-build only) | 23 |
