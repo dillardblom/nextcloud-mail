@@ -98,7 +98,7 @@ import Logger from '../logger.js'
 import { downloadAttachment, saveAttachmentForViewing, saveAttachmentToFiles } from '../service/AttachmentService.js'
 import { getUserCalendars, importCalendarEvent } from '../service/DAVService.js'
 import { pickFolder } from '../util/filePicker.js'
-import { isOfficeAttachment, isTextAttachment } from '../util/officeAttachment.js'
+import { hasTextViewer, isOfficeAttachment, isTextAttachment } from '../util/officeAttachment.js'
 import { fileUrl, officeUrl } from '../util/officeUrl.js'
 
 export default {
@@ -290,6 +290,10 @@ export default {
 		 * there, which starts the office app. Opening it again reuses the saved copy.
 		 */
 		async openInOffice() {
+			if (this.canOpenInText && hasTextViewer(window.OCA?.Viewer)) {
+				await this.openInViewer()
+				return
+			}
 			this.openingInOffice = true
 			// Open the tab now: browsers block a new tab opened after an await
 			const tab = window.open('', '_blank')
@@ -306,6 +310,19 @@ export default {
 			} catch (error) {
 				tab?.close()
 				Logger.error('could not open the attachment in office', { error })
+				showError(t('mail', 'Could not open the attachment'))
+			} finally {
+				this.openingInOffice = false
+			}
+		},
+
+		async openInViewer() {
+			this.openingInOffice = true
+			try {
+				const file = await saveAttachmentForViewing(this.$route.params.threadId, this.id, '/' + t('mail', 'Mail attachments'))
+				window.OCA.Viewer.open({ path: file.path })
+			} catch (error) {
+				Logger.error('could not open the attachment in the viewer', { error })
 				showError(t('mail', 'Could not open the attachment'))
 			} finally {
 				this.openingInOffice = false

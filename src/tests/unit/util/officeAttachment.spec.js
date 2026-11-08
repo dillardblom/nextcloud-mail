@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
-import { isOfficeAttachment, isTextAttachment } from '../../../util/officeAttachment.js'
+import { hasTextViewer, isOfficeAttachment, isTextAttachment } from '../../../util/officeAttachment.js'
 
 describe('isOfficeAttachment', () => {
 	it.each([
@@ -72,5 +72,19 @@ describe('isTextAttachment', () => {
 
 	it('needs the Text app', () => {
 		expect(isTextAttachment('server.log', ['eurooffice'])).toBe(false)
+	})
+})
+
+describe('hasTextViewer', () => {
+	it('finds the Text handler', () => {
+		expect(hasTextViewer({ availableHandlers: [{ id: 'images' }, { id: 'text' }] })).toBe(true)
+	})
+
+	it.each([
+		[{ availableHandlers: [{ id: 'images' }] }],
+		[{}],
+		[undefined],
+	])('is false without it: %o', (viewer) => {
+		expect(hasTextViewer(viewer)).toBe(false)
 	})
 })

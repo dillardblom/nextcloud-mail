@@ -46,3 +46,14 @@ export function isOfficeAttachment(mime, fileName, enabledApps) {
 export function isTextAttachment(fileName, enabledApps) {
 	return enabledApps.includes('text') && TEXT_EXTENSION.test(fileName ?? '')
 }
+
+/**
+ * Whether Text is registered in the Viewer of this page, so a saved text file can open over
+ * Mail instead of loading the Files app in a new tab.
+ *
+ * @param {object} [viewer] OCA.Viewer
+ * @return {boolean} whether the Viewer has the Text handler
+ */
+export function hasTextViewer(viewer) {
+	return (viewer?.availableHandlers ?? []).some((handler) => handler.id === 'text')
+}
