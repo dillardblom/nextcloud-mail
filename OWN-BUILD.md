@@ -36,7 +36,7 @@ The last column refers to the item in our own wish list.
 | Reply from the message list again | `feat/list-reply` | not submitted | 16 |
 | Type to find an account or alias in the From field | `feat/searchable-from` | not submitted | 8 |
 | Convert non-UTF-8 subjects and recipients before insert | `fix/utf8-recipient-labels` | PR #13782, open | – |
-| `mail:account:list` and better account commands | `feat/account-commands-help` (local only) | not submitted | – |
+| `mail:account:list` and better account commands | `feat/account-commands-help` | not submitted | – |
 | Number of messages of a thread in the message list | `feat/thread-count` | not submitted | 13a |
 | Select across date groups, and "Select all" | `feat/select-across-groups` | not submitted | 15 |
 | Open an office attachment in the office app (click or menu), on its editor page; PDFs too with Euro-Office/ONLYOFFICE; also CSV, and TXT, MD, TSV, Pages, Numbers and Keynote with Euro-Office/ONLYOFFICE; LOG, JSON, XML, YAML, conf, HTML and PHP open in Text as source, in the Viewer over Mail | `feat/open-attachment-in-office` | not submitted | 14 |
@@ -44,7 +44,7 @@ The last column refers to the item in our own wish list.
 | Reply among the configurable shortcuts, Ctrl/Cmd combinations (e.g. R to reply, Ctrl+R to refresh); own keys kept after a reload | `feat/configurable-reply-refresh` | not submitted | 21 |
 | Favorite among the actions shown when hovering a message | `feat/hover-favorite` | not submitted | 20 |
 | Refresh the open message list every 5/15/30/60 minutes (default 15) or manually | `feat/auto-refresh` | not submitted | 19 |
-| In a thread, save or open the attachment of its own message (was: same attachment number of the selected message, e.g. an .eml instead of a PDF) | `fix/attachment-of-its-own-message` (upstream: `fix/attachment-save-own-message`) | PR #14007, open ("Save to Files" part; opening in office is own-build only) | 23 |
+| In a thread, save or open the attachment of its own message (was: same attachment number of the selected message, e.g. an .eml instead of a PDF) | `fix/attachment-of-its-own-message` (upstream: `fix/attachment-save-own-message`) | PR #14007, **merged** in `main` ("Save to Files" part; opening in office is own-build only) | 23 |
 | Archive several selected threads at once, each to the archive mailbox of its own account | `feat/archive-selection` | not submitted | 24 |
 | Play audio attachments in the message (player in the attachment, click plays or pauses) | `feat/play-audio-attachments` | not submitted | 25 |
 | Table-based HTML signatures keep their layout (table and cell attributes and styles, linked images, no figure or cell paragraph margins) | `fix/signature-html-formatting` | not submitted | – |
@@ -114,6 +114,59 @@ Points to settle before submitting `fix/signature-html-formatting` to nextcloud/
 
 Nothing. Check this table against `git log vX.Y.Z..vX.Y.Z-db` after every rebuild on a new
 upstream version.
+
+## Branches
+
+Every branch of our own, also those not in this build. Keep this list up to date with every new
+branch, so it stays clear which changes are ours and where they live. All are on the fork
+(`dillardblom/nextcloud-mail`). "5.12" means based on the 5.12 line and merged into the own
+builds; "main" means against upstream `main`, for a pull request.
+
+| Branch | Base | In this build | Note |
+|---|---|---|---|
+| `branch-5-13` | v5.13.1 | – | this build |
+| `v5.12.3-db` … `v5.12.6-db` | 5.12 | merged | earlier own builds; `v5.12.6-db` still takes later work |
+| `v5.12.2-db` | 5.12 | no | first own build; local and fork copies differ, the fork is the newer one |
+| `feat/fold-accounts` | main | yes | PR #13736 |
+| `v5.12.2-db-pr13736`, `v5.12.2-db-pr13736-align` | 5.12 | no | 5.12 versions of #13736 tried in the build; replaced by `feat/fold-accounts` |
+| `pr-13736-screenshots` | main | no | screenshots for #13736 |
+| `feat/account-label`, `v5.12.3-db-account-label-name` | main / 5.12 | yes | the fork copy of `feat/account-label` has one commit more |
+| `feat/composer-maximize` | main | yes | |
+| `feat/reply-shortcut` | main | yes | |
+| `perf/preview-enhancer-attachments` | main | yes | |
+| `perf/cache-html-body-miss` | main | yes | |
+| `perf/cancel-stale-envelope-loads` | main | yes | |
+| `perf/message-open-single-fetch` | main | yes | |
+| `perf/body-search-global-limit` | main | yes | |
+| `fix/sync-without-known-ids` | main | yes | PR #13823 |
+| `fix/sync-init-reconcile-known` | main | no | follow-up on #13823: reconcile known messages on the initial sync; not submitted |
+| `fix/partial-sync-bound` | main | no | at most `MAX_NEW_MESSAGES` new messages per partial sync (upstream issue #13778); not submitted |
+| `fix/sync-token-before-search` | main | yes | PR #14030 |
+| `fix/utf8-recipient-labels` | main | yes | PR #13782; the fork copy is the rebased PR, the local copy the older 5.12 version |
+| `feat/account-commands-help` | main | yes | |
+| `fix/no-draft-without-edits` | 5.12 | yes | needs a port to `main` |
+| `fix/no-draft-signature-only` | 5.12 | yes | |
+| `feat/list-reply` | 5.12 | yes | |
+| `feat/searchable-from` | 5.12 | yes | |
+| `feat/thread-count` | 5.12 | yes | |
+| `feat/select-across-groups` | 5.12 | yes | |
+| `feat/open-attachment-in-office` | 5.12 | yes | |
+| `feat/configurable-shortcuts` | 5.12 | yes | |
+| `feat/configurable-reply-refresh` | 5.12 | yes | on top of `feat/configurable-shortcuts` |
+| `feat/hover-favorite` | 5.12 | yes | |
+| `feat/auto-refresh` | 5.12 | yes | |
+| `fix/attachment-of-its-own-message` | 5.12 | yes | build version, with opening in office |
+| `fix/attachment-save-own-message` | main | – | PR #14007, merged |
+| `feat/archive-selection` | 5.12 | yes | |
+| `feat/play-audio-attachments` | 5.12 | yes | |
+| `fix/signature-html-formatting` | 5.12 | yes | see Notes for upstream |
+| `fix/html-tel-links` | main | yes | |
+| `fix/no-empty-file-after-blocked-save` | 5.12 | yes | |
+| `feat/prefetch-attachments` | 5.12 | yes | on top of `feat/open-attachment-in-office` |
+| `feat/attachment-virus-scan` | 5.12 | yes | on top of `feat/prefetch-attachments` |
+
+Local only, not ours to publish: `backup/*` (states before a squash or rewrite) and
+`upstream-pr-13206` / `v5.12.2-db-pr13206` (someone else's pull request, tried locally).
 
 ## Install
 
