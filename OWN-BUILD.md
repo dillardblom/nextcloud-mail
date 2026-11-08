@@ -4,9 +4,12 @@ Own build of Nextcloud Mail: upstream tag v5.13.1 plus the changes below, while 
 review upstream. This branch is never submitted as a pull request; every change also lives on its
 own branch (against `main` where it has been submitted upstream).
 
-The installable package is attached to the matching release of this repository. It keeps the
-upstream version number, so Nextcloud replaces it with the next official Mail release from the app
-store; install the next own build instead if you want to keep these changes. Use it at your own
+The installable package is attached to the matching release of this repository. Its version is
+5.13.1.1: one step above the upstream number, so the database change of this build runs, and still
+below 5.13.2, so Nextcloud replaces it with the next official Mail release from the app store;
+install the next own build instead if you want to keep these changes. Nextcloud does not install a
+lower version over it, so going back to a 5.13.1 package needs the version in its `appinfo/info.xml`
+raised. Use it at your own
 risk and keep a copy of the `mail` app folder you replace.
 
 The last column refers to the item in our own wish list.
@@ -49,6 +52,7 @@ The last column refers to the item in our own wish list.
 | Phone number links (`tel:`) in received HTML messages stay clickable | `fix/html-tel-links` (against `main`) | not submitted | – |
 | Sync: no message skipped for good when it arrives during a sync (token taken before the search; new messages filtered by UID, so a missing one below the highest cached UID is synced too) | `fix/sync-token-before-search` (against `main`) | PR #14030, open | – |
 | Saving to Files leaves no empty file behind when the write is blocked (e.g. by the antivirus app) | `fix/no-empty-file-after-blocked-save` | not submitted | – |
+| Openable attachments are copied to "Mail attachments" when a message is opened (not from junk, up to 25 MB), so a click opens at once; copies unused for 7 days and unchanged move to the trash bin, changed ones stay | `feat/prefetch-attachments` | not submitted | – |
 
 ## Settings
 
