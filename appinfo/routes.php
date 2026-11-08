@@ -211,6 +211,16 @@ return [
 			'verb' => 'POST'
 		],
 		[
+			'name' => 'viewingCopies#create',
+			'url' => '/api/messages/{id}/viewing-copies',
+			'verb' => 'POST'
+		],
+		[
+			'name' => 'viewingCopies#prefetch',
+			'url' => '/api/messages/{id}/viewing-copies/prefetch',
+			'verb' => 'POST'
+		],
+		[
 			'name' => 'messages#saveFile',
 			'url' => '/api/messages/{id}/file',
 			'verb' => 'POST'

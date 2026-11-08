@@ -57,3 +57,30 @@ export function isTextAttachment(fileName, enabledApps) {
 export function hasTextViewer(viewer) {
 	return (viewer?.availableHandlers ?? []).some((handler) => handler.id === 'text')
 }
+
+/**
+ * A PDF while Euro-Office or ONLYOFFICE is enabled: they take over the PDF view of the Viewer,
+ * which then fails on an attachment that is not a file yet ("FileId is empty"). Saved first, it
+ * opens in their editor like an office document.
+ *
+ * @param {string} mime MIME type of the attachment
+ * @param {string} fileName name of the attachment
+ * @param {string[]} enabledApps ids of the enabled apps
+ * @return {boolean} whether the PDF opens in the office app
+ */
+export function isPdfForOffice(mime, fileName, enabledApps) {
+	return ONLYOFFICE_APPS.some((app) => enabledApps.includes(app))
+		&& (mime === 'application/pdf' || /\.pdf$/i.test(fileName ?? ''))
+}
+
+/**
+ * @param {string} mime MIME type of the attachment
+ * @param {string} fileName name of the attachment
+ * @param {string[]} enabledApps ids of the enabled apps
+ * @return {boolean} whether the attachment is copied to the user's files to open it in an app
+ */
+export function opensInApp(mime, fileName, enabledApps) {
+	return isOfficeAttachment(mime, fileName, enabledApps)
+		|| isTextAttachment(fileName, enabledApps)
+		|| isPdfForOffice(mime, fileName, enabledApps)
+}

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
-import { hasTextViewer, isOfficeAttachment, isTextAttachment } from '../../../util/officeAttachment.js'
+import { hasTextViewer, isOfficeAttachment, isPdfForOffice, isTextAttachment, opensInApp } from '../../../util/officeAttachment.js'
 
 describe('isOfficeAttachment', () => {
 	it.each([
@@ -86,5 +86,35 @@ describe('hasTextViewer', () => {
 		[undefined],
 	])('is false without it: %o', (viewer) => {
 		expect(hasTextViewer(viewer)).toBe(false)
+	})
+})
+
+describe('isPdfForOffice', () => {
+	it('opens a PDF in Euro-Office or ONLYOFFICE', () => {
+		expect(isPdfForOffice('application/pdf', 'a.pdf', ['eurooffice'])).toBe(true)
+		expect(isPdfForOffice('application/octet-stream', 'a.PDF', ['onlyoffice'])).toBe(true)
+	})
+
+	it('leaves a PDF to the Viewer otherwise', () => {
+		expect(isPdfForOffice('application/pdf', 'a.pdf', ['richdocuments'])).toBe(false)
+		expect(isPdfForOffice('image/png', 'a.png', ['eurooffice'])).toBe(false)
+	})
+})
+
+describe('opensInApp', () => {
+	it.each([
+		['text/csv', 'file.csv', ['eurooffice']],
+		['text/plain', 'server.log', ['text']],
+		['application/pdf', 'a.pdf', ['eurooffice']],
+	])('copies %s named %s', (mime, fileName, apps) => {
+		expect(opensInApp(mime, fileName, apps)).toBe(true)
+	})
+
+	it.each([
+		['application/zip', 'a.zip', ['eurooffice', 'text']],
+		['image/png', 'a.png', ['eurooffice', 'text']],
+		['text/plain', 'server.log', ['eurooffice']],
+	])('does not copy %s named %s', (mime, fileName, apps) => {
+		expect(opensInApp(mime, fileName, apps)).toBe(false)
 	})
 })

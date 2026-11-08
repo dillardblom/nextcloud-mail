@@ -20,6 +20,7 @@
 					:mime="attachment.mime"
 					:mime-url="attachment.mimeUrl"
 					:can-preview="canPreview(fileInfos[idx])"
+					:viewing-copy="viewingCopies[attachment.id] ?? null"
 					@open="showViewer(fileInfos[idx])" />
 			</div>
 		</div>
@@ -82,8 +83,12 @@ import Download from 'vue-material-design-icons/TrayArrowDown.vue'
 import MessageAttachment from './MessageAttachment.vue'
 import Logger from '../logger.js'
 import AttachmentMixin from '../mixins/AttachmentMixin.js'
-import { saveAttachmentsToFiles } from '../service/AttachmentService.js'
+import { prefetchAttachmentsForViewing, saveAttachmentsToFiles } from '../service/AttachmentService.js'
 import { pickFolder } from '../util/filePicker.js'
+import { opensInApp } from '../util/officeAttachment.js'
+
+// Larger attachments are only copied when opened, so a message with a video does not cost the wait
+const PREFETCH_MAX_SIZE = 25 * 1024 * 1024
 
 export default {
 	name: 'MessageAttachments',
@@ -118,6 +123,7 @@ export default {
 			attachmentImageURL: '',
 			hasNextLine: false,
 			isToggled: false,
+			viewingCopies: {},
 		}
 	},
 
@@ -134,7 +140,14 @@ export default {
 		},
 	},
 
+	watch: {
+		'envelope.databaseId': function() {
+			this.prefetch()
+		},
+	},
+
 	mounted() {
+		this.prefetch()
 		let prevTop = null
 		this.visible = 0
 		this.$nextTick(function() {
@@ -156,6 +169,26 @@ export default {
 	},
 
 	methods: {
+		async prefetch() {
+			const messageId = this.envelope.databaseId
+			this.viewingCopies = {}
+			const enabledApps = Object.keys(window.OC?.appswebroots ?? {})
+			const ids = this.attachments
+				.filter((attachment) => attachment.size <= PREFETCH_MAX_SIZE && opensInApp(attachment.mime, attachment.fileName, enabledApps))
+				.map((attachment) => attachment.id)
+			if (ids.length === 0) {
+				return
+			}
+			try {
+				const copies = await prefetchAttachmentsForViewing(messageId, ids, '/' + t('mail', 'Mail attachments'))
+				if (this.envelope.databaseId !== messageId) {
+					return
+				}
+				this.viewingCopies = Object.fromEntries(copies.map((copy) => [copy.attachmentId, copy]))
+			} catch (error) {
+				Logger.info('could not copy the attachments ahead, they are copied when opened', { error })
+			}
+		},
 
 		async saveAll() {
 			let path

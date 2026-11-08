@@ -3,10 +3,13 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
+import { showError } from '@nextcloud/dialogs'
 import { createLocalVue, shallowMount } from '@vue/test-utils'
 import MessageAttachment from '../../../components/MessageAttachment.vue'
 import Nextcloud from '../../../mixins/Nextcloud.js'
 import { saveAttachmentForViewing } from '../../../service/AttachmentService.js'
+
+vi.mock('@nextcloud/dialogs', () => ({ showError: vi.fn(), showSuccess: vi.fn() }))
 
 vi.mock('../../../service/AttachmentService.js', () => ({
 	downloadAttachment: vi.fn(),
@@ -18,9 +21,10 @@ const localVue = createLocalVue()
 
 localVue.mixin(Nextcloud)
 
-function mountLog() {
+function mountLog(extraProps = {}) {
 	return shallowMount(MessageAttachment, {
 		propsData: {
+			...extraProps,
 			id: '2',
 			messageId: 41,
 			fileName: 'server.log',
@@ -68,5 +72,26 @@ describe('MessageAttachment in the Viewer', () => {
 
 		expect(open).not.toHaveBeenCalled()
 		expect(tab.location).toMatch(/\/f\/7$/)
+	})
+	it('opens the copy made when the message was opened without saving again', async () => {
+		const open = vi.fn()
+		window.OCA = { ...window.OCA, Viewer: { availableHandlers: [{ id: 'text' }], mimetypes: [], open } }
+		saveAttachmentForViewing.mockClear()
+		const view = mountLog({ viewingCopy: { attachmentId: '2', path: '/Mail attachments/server (2).log', fileId: 9 } })
+
+		await view.vm.openInOffice()
+
+		expect(saveAttachmentForViewing).not.toHaveBeenCalled()
+		expect(open).toHaveBeenCalledWith({ path: '/Mail attachments/server (2).log' })
+	})
+
+	it('says when the server refused the attachment', async () => {
+		window.OCA = { ...window.OCA, Viewer: { availableHandlers: [{ id: 'text' }], mimetypes: [], open: vi.fn() } }
+		saveAttachmentForViewing.mockRejectedValueOnce({ response: { status: 422 } })
+		const view = mountLog()
+
+		await view.vm.openInOffice()
+
+		expect(showError).toHaveBeenCalledWith(expect.stringContaining('virus'))
 	})
 })
