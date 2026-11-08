@@ -645,8 +645,7 @@ class MessagesController extends Controller {
 			$counter++;
 		}
 
-		$newFile = $this->userFolder->newFile($fullPath);
-		$newFile->putContent($source);
+		$this->userFolder->newFile($fullPath, $source);
 
 		return new JSONResponse();
 	}
@@ -905,8 +904,7 @@ class MessagesController extends Controller {
 				$counter++;
 			}
 
-			$newFile = $this->userFolder->newFile($fullPath);
-			$newFile->putContent($attachment->getContent());
+			$this->userFolder->newFile($fullPath, $attachment->getContent());
 		}
 		return new JSONResponse();
 	}
