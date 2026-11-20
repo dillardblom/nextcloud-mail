@@ -18,7 +18,7 @@ The last column refers to the item in our own wish list.
 
 | Change | Branch | Upstream | List |
 |---|---|---|---|
-| Fold an account to a single line, indent its mailboxes | `feat/fold-accounts` | PR #13736, open, approved (rebased onto `main` again 2026-11-20) | 1 |
+| Fold an account to a single line, indent its mailboxes | `feat/fold-accounts` | PR #13736, **merged** 2026-11-20 (in `main`, not in a 5.13 release) | 1 |
 | Optional account label in combined mailboxes, label as mailbox name, label in the navigation | `feat/account-label` (+ `v5.12.3-db-account-label-name`) | not submitted | 2 |
 | Maximized composer uses the screen and is remembered after a reload | `feat/composer-maximize` | not submitted | 3 |
 | Reply to the open message with Ctrl+R / Cmd+R | `feat/reply-shortcut` | not submitted | 4 |
@@ -54,9 +54,9 @@ The last column refers to the item in our own wish list.
 | Saving to Files leaves no empty file behind when the write is blocked (e.g. by the antivirus app) | `fix/no-empty-file-after-blocked-save` | not submitted | – |
 | Openable attachments are copied to "Mail attachments" when a message is opened (not from junk, up to 25 MB), so a click opens at once; copies unused for 7 days and unchanged move to the trash bin, changed ones stay | `feat/prefetch-attachments` | not submitted | – |
 | Virus scan of received mail with ClamAV: an infected message has its attachments blocked (download, preview, zip, Save to Files, open, forward, API) and moves to junk or trash; settings in Administration > Groupware (see below) | `feat/attachment-virus-scan` | proposed in issue #14091 | – |
-| Delete selected threads one after another instead of all at once (parallel logins were refused by the mail server, after three refusals Mail locked the account for up to three hours: "Too many auth attempts") | `fix/sequential-thread-delete` (against `main`) | not submitted | – |
+| Delete selected threads one after another instead of all at once (parallel logins were refused by the mail server, after three refusals Mail locked the account for up to three hours: "Too many auth attempts") | `fix/sequential-thread-delete` (against `main`) | PR #14267, open | – |
 | Delete a thread over one IMAP connection instead of one login per message (`main` already batches this) | `fix/thread-delete-one-connection` | not needed upstream | – |
-| Actions menu of an account named for screen readers, as in PR #13736 | `feat/fold-accounts` | PR #13736 | 1 |
+| Actions menu of an account named for screen readers, as in PR #13736 | `feat/fold-accounts` | PR #13736, merged | 1 |
 
 ## Settings
 
@@ -130,7 +130,7 @@ builds; "main" means against upstream `main`, for a pull request.
 | `branch-5-13` | v5.13.3 (was v5.13.1 until 2026-11-20) | – | this build |
 | `v5.12.3-db` … `v5.12.6-db` | 5.12 | merged | earlier own builds; `v5.12.6-db` still takes later work |
 | `v5.12.2-db` | 5.12 | no | first own build; local and fork copies differ, the fork is the newer one |
-| `feat/fold-accounts` | main | yes | PR #13736 |
+| `feat/fold-accounts` | main | yes | PR #13736, merged |
 | `v5.12.2-db-pr13736`, `v5.12.2-db-pr13736-align` | 5.12 | no | 5.12 versions of #13736 tried in the build; replaced by `feat/fold-accounts` |
 | `pr-13736-screenshots` | main | no | screenshots for #13736 |
 | `feat/account-label`, `v5.12.3-db-account-label-name` | main / 5.12 | yes | the fork copy of `feat/account-label` has one commit more |
@@ -161,7 +161,7 @@ builds; "main" means against upstream `main`, for a pull request.
 | `fix/attachment-of-its-own-message` | 5.12 | yes | build version, with opening in office |
 | `fix/attachment-save-own-message` | main | – | PR #14007, merged |
 | `feat/archive-selection` | 5.12 | yes | |
-| `fix/sequential-thread-delete` | main | yes | not submitted yet |
+| `fix/sequential-thread-delete` | main | yes | PR #14267 |
 | `fix/thread-delete-one-connection` | 5.12 | yes | `main` already batches this |
 | `feat/play-audio-attachments` | 5.12 | yes | |
 | `fix/signature-html-formatting` | 5.12 | yes | see Notes for upstream |
