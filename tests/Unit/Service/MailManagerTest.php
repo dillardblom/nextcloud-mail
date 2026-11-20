@@ -895,10 +895,13 @@ class MailManagerTest extends TestCase {
 			->method('findById')
 			->with($trashMailbox->getId())
 			->willReturn($trashMailbox);
+		$client = $this->createMock(Horde_Imap_Client_Socket::class);
+		$client->expects(self::once())
+			->method('logout');
 		$this->imapClientFactory
-			->expects(self::exactly(2))
+			->expects(self::once())
 			->method('getClient')
-			->willReturn($this->createStub(Horde_Imap_Client_Socket::class));
+			->willReturn($client);
 		$this->imapMessageMapper
 			->expects(self::exactly(2))
 			->method('move');
@@ -942,10 +945,13 @@ class MailManagerTest extends TestCase {
 				['messageUid' => 200, 'mailboxName' => 'Trash'],
 				['messageUid' => 300, 'mailboxName' => 'Trash'],
 			]);
+		$client = $this->createMock(Horde_Imap_Client_Socket::class);
+		$client->expects(self::once())
+			->method('logout');
 		$this->imapClientFactory
-			->expects(self::exactly(2))
+			->expects(self::once())
 			->method('getClient')
-			->willReturn($this->createStub(Horde_Imap_Client_Socket::class));
+			->willReturn($client);
 		$this->imapMessageMapper
 			->expects(self::exactly(2))
 			->method('expunge');
@@ -999,16 +1005,54 @@ class MailManagerTest extends TestCase {
 			->method('findById')
 			->with(80)
 			->willReturn($trash);
+		$client = $this->createMock(Horde_Imap_Client_Socket::class);
+		$client->expects(self::once())
+			->method('logout');
 		$this->imapClientFactory
-			->expects(self::exactly(2))
+			->expects(self::once())
 			->method('getClient')
-			->willReturn($this->createStub(Horde_Imap_Client_Socket::class));
+			->willReturn($client);
 		$this->imapMessageMapper
 			->expects(self::exactly(2))
 			->method('move');
 		$this->eventDispatcher
 			->expects(self::exactly(4))
 			->method('dispatchTyped');
+
+		$this->manager->deleteThread(
+			$account,
+			$mailbox,
+			$threadRootId
+		);
+	}
+
+	public function testDeleteThreadLogsOutWhenMailboxIsMissing(): void {
+		$threadRootId = 'some-thread-root-id-1';
+		$mailAccount = new MailAccount();
+		$mailAccount->setId(1);
+		$mailAccount->setTrashMailboxId(80);
+		$account = new Account($mailAccount);
+		$mailbox = new Mailbox();
+		$mailbox->setId(20);
+		$mailbox->setName('INBOX');
+		$this->threadMapper
+			->method('findMessageUidsAndMailboxNamesByAccountAndThreadRoot')
+			->willReturn([
+				['messageUid' => 200, 'mailboxName' => 'Gone'],
+			]);
+		$this->mailboxMapper
+			->method('find')
+			->willThrowException(new DoesNotExistException(''));
+		$client = $this->createMock(Horde_Imap_Client_Socket::class);
+		$client->expects(self::once())
+			->method('logout');
+		$this->imapClientFactory
+			->method('getClient')
+			->willReturn($client);
+		$this->imapMessageMapper
+			->expects(self::never())
+			->method('move');
+		$this->expectException(ServiceException::class);
 
 		$this->manager->deleteThread(
 			$account,
