@@ -187,6 +187,7 @@
     "Full screen" : "מסך מלא",
     "Error sending your message" : "שליחת ההודעה שלך נכשלה",
     "Retry" : "ניסיון חוזר",
+    "Reconnect" : "התחבר מחדש",
     "Message" : "הודעה",
     "Oh Snap!" : "שוד ושבר!",
     "Copy to clipboard" : "העתקה ללוח הגזירים",
@@ -233,15 +234,15 @@
     "Reset" : "איפוס",
     "Client ID" : "מזהה לקו",
     "Client secret" : "סוד לקוח",
+    "IMAP" : "IMAP",
+    "Host" : "מארח",
+    "Port" : "פתחה",
+    "SMTP" : "SMTP",
     "Email: {email}" : "דוא״ל: {email}",
     "IMAP: {user} on {host}:{port} ({ssl} encryption)" : "IMAP:‏ {user} על גבי ‎{host}:{port}‎ (הצפנת {ssl})",
     "SMTP: {user} on {host}:{port} ({ssl} encryption)" : "SMTP:‏ {user} על גבי ‎{host}:{port}‎ (הצפנת {ssl})",
     "Email address template" : "תבנית כתובת דוא״ל",
-    "IMAP" : "IMAP",
     "User" : "משתמש",
-    "Host" : "מארח",
-    "Port" : "פתחה",
-    "SMTP" : "SMTP",
     "Save Config" : "שמירת הגדרות",
     "With the settings above, the app will create account settings in the following way:" : "עם ההגדרות שלהלן, היישומון יצור הגדרות חשבון באופן הבא:",
     "E-mail address" : "כתובת דוא״ל",
@@ -275,7 +276,6 @@
     "Could not load the message" : "לא ניתן לטעון את ההודעה",
     "Date:" : "בתאריך:",
     "Tag already exists" : "תגית כבר קיימת",
-    "Error loading message" : "שגיאה בהעלאת הודעה",
-    "Itinerary for {type} is not supported yet" : "פירוט המסלול {type} אינו נתמך עדיין"
+    "Error loading message" : "שגיאה בהעלאת הודעה"
 },"pluralForm" :"nplurals=3; plural=(n == 1 && n % 1 == 0) ? 0 : (n == 2 && n % 1 == 0) ? 1: 2;"
 }

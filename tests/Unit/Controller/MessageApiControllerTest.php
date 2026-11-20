@@ -415,7 +415,7 @@ class MessageApiControllerTest extends TestCase {
 			->with($this->userId, $this->account->getId())
 			->willReturn($this->account);
 		$this->aliasesService->expects(self::never())
-			->method('findByAliasAndUserId');
+			->method('findByAliasForAccount');
 		$this->request->expects(self::once())
 			->method('getUploadedFile')
 			->willReturn(null);
@@ -454,7 +454,7 @@ class MessageApiControllerTest extends TestCase {
 			->with($this->userId, $this->account->getId())
 			->willReturn($this->account);
 		$this->aliasesService->expects(self::never())
-			->method('findByAliasAndUserId');
+			->method('findByAliasForAccount');
 		$this->request->expects(self::never())
 			->method('getUploadedFile');
 		$this->attachmentService->expects(self::never())
@@ -499,7 +499,7 @@ class MessageApiControllerTest extends TestCase {
 			->with($this->userId, $this->account->getId())
 			->willReturn($this->account);
 		$this->aliasesService->expects(self::never())
-			->method('findByAliasAndUserId');
+			->method('findByAliasForAccount');
 		$this->request->expects(self::once())
 			->method('getUploadedFile')
 			->willReturn(null);
@@ -564,7 +564,7 @@ class MessageApiControllerTest extends TestCase {
 			->with($this->userId, $this->account->getId())
 			->willReturn($this->account);
 		$this->aliasesService->expects(self::never())
-			->method('findByAliasAndUserId');
+			->method('findByAliasForAccount');
 		$this->request->expects(self::once())
 			->method('getUploadedFile')
 			->willReturn($attachments);
@@ -621,7 +621,7 @@ class MessageApiControllerTest extends TestCase {
 			->with($this->userId, $this->account->getId())
 			->willReturn($this->account);
 		$this->aliasesService->expects(self::never())
-			->method('findByAliasAndUserId');
+			->method('findByAliasForAccount');
 		$this->request->expects(self::once())
 			->method('getUploadedFile')
 			->willReturn($attachments);
@@ -669,7 +669,7 @@ class MessageApiControllerTest extends TestCase {
 			->with($this->userId, $account->getId())
 			->willReturn($account);
 		$this->aliasesService->expects(self::once())
-			->method('findByAliasAndUserId')
+			->method('findByAliasForAccount')
 			->willReturn($alias);
 		$this->request->expects(self::once())
 			->method('getUploadedFile')
@@ -704,7 +704,7 @@ class MessageApiControllerTest extends TestCase {
 			->with($this->userId, $this->account->getId())
 			->willReturn($this->account);
 		$this->aliasesService->expects(self::once())
-			->method('findByAliasAndUserId')
+			->method('findByAliasForAccount')
 			->willThrowException(new DoesNotExistException(''));
 		$this->logger->expects(self::once())
 			->method('error');
@@ -740,7 +740,7 @@ class MessageApiControllerTest extends TestCase {
 		$this->logger->expects(self::once())
 			->method('error');
 		$this->aliasesService->expects(self::never())
-			->method('findByAliasAndUserId');
+			->method('findByAliasForAccount');
 		$this->request->expects(self::never())
 			->method('getUploadedFile');
 		$this->attachmentService->expects(self::never())

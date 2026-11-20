@@ -131,10 +131,6 @@ export default {
 			required: true,
 		},
 
-		/**
-		 * The message the attachment belongs to. In a thread this need not be the message in
-		 * the route, and an attachment id is only unique within its own message.
-		 */
 		messageId: {
 			type: Number,
 			required: true,
@@ -289,10 +285,8 @@ export default {
 			}
 
 			this.savingToCloud = true
-			const id = this.messageId
-
 			try {
-				await saveAttachmentToFiles(id, this.id, path)
+				await saveAttachmentToFiles(this.messageId, this.id, path)
 				Logger.info('saved')
 				showSuccess(t('mail', 'Attachment saved to Files'))
 			} catch (e) {

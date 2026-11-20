@@ -186,6 +186,7 @@ OC.L10N.register(
     "New message" : "Tin nhắn mới",
     "Error sending your message" : "Lỗi khi gửi tin nhắn",
     "Retry" : "Thử lại",
+    "Reconnect" : "Kết nối lại",
     "Contacts with this address" : "Liên hệ với địa chỉ này",
     "Add to Contact" : "Thêm liên hệ",
     "New Contact" : "ĐỊa chỉ liên hệ mới",
@@ -241,13 +242,13 @@ OC.L10N.register(
     "Here you can find instance-wide settings. User specific settings are found in the app itself (bottom-left corner)." : "Tại đây bạn có thể tìm thấy các cài đặt cho toàn phiên bản. Cài đặt người dùng cụ thể được tìm thấy trong chính ứng dụng (góc dưới bên trái).",
     "Reset" : "Đặt lại",
     "Client ID" : "ID khách hàng",
+    "Host" : "Máy chủ",
+    "Port" : "Cổng",
     "Email: {email}" : "Thư điện tử: {email}",
     "IMAP: {user} on {host}:{port} ({ssl} encryption)" : "IMAP: {user} trên {host}: {port} (mã hóa {ssl})",
     "SMTP: {user} on {host}:{port} ({ssl} encryption)" : "SMTP: {user} trên {host}: {port} (mã hóa {ssl})",
     "Sieve: {user} on {host}:{port} ({ssl} encryption)" : "Sieve: {user} trên {host}: {port} (mã hóa {ssl})",
     "User" : "Người dùng",
-    "Host" : "Máy chủ",
-    "Port" : "Cổng",
     "Enable sieve integration" : "Bật tích hợp sieve",
     "With the settings above, the app will create account settings in the following way:" : "Với cài đặt ở trên, ứng dụng sẽ tạo cài đặt tài khoản theo cách sau:",
     "E-mail address" : "Địa chỉ email",
@@ -278,7 +279,6 @@ OC.L10N.register(
     "Could not load the message" : "Không thể tải tin nhắn",
     "Date:" : "Ngày:",
     "Tag already exists" : "Thẻ đã tồn tại",
-    "Error loading message" : "Lỗi khi tải tin nhắn",
-    "Itinerary for {type} is not supported yet" : "Hành trình cho {type} chưa được hỗ trợ"
+    "Error loading message" : "Lỗi khi tải tin nhắn"
 },
 "nplurals=1; plural=0;");

@@ -45,6 +45,7 @@ use OCA\Mail\Service\ItineraryService;
 use OCA\Mail\Service\MailManager;
 use OCA\Mail\Service\SmimeService;
 use OCA\Mail\Service\SnoozeService;
+use OCP\App\IAppManager;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\ContentSecurityPolicy;
@@ -140,6 +141,8 @@ class MessagesControllerTest extends TestCase {
 	private DelegationService|MockObject $delegationService;
 	private MessageScanService&MockObject $messageScanService;
 
+	private IAppManager&MockObject $appManager;
+
 	protected function setUp(): void {
 		parent::setUp();
 
@@ -175,6 +178,8 @@ class MessagesControllerTest extends TestCase {
 		$this->delegationService->method('resolveMailboxUserId')->willReturn($this->userId);
 		$this->messageScanService = $this->createMock(MessageScanService::class);
 
+		$this->appManager = $this->createMock(IAppManager::class);
+
 		$this->filenameValidator = $this->createMock(IFilenameValidator::class);
 		$this->filenameValidator->method('sanitizeFilename')
 			->willReturn('core_master has new results');
@@ -205,6 +210,7 @@ class MessagesControllerTest extends TestCase {
 			$this->cacheFactory,
 			$this->delegationService,
 			$this->messageScanService,
+			$this->appManager,
 		);
 
 		$this->account = $this->createMock(Account::class);
@@ -274,9 +280,12 @@ class MessagesControllerTest extends TestCase {
 		$this->nonceManager->expects($this->once())
 			->method('getNonce')
 			->willReturn($nonce);
+		$this->appManager->method('getAppVersion')
+			->with('mail')
+			->willReturn('5.13.0');
 		$this->urlGenerator->expects($this->once())
 			->method('linkTo')
-			->with('mail', 'js/htmlresponse.js')
+			->with('mail', 'js/htmlresponse.js', ['v' => '5.13.0'])
 			->willReturn($relativeScriptUrl);
 		$this->urlGenerator->expects($this->once())
 			->method('getAbsoluteURL')
@@ -375,6 +384,7 @@ class MessagesControllerTest extends TestCase {
 			$cacheFactory,
 			$this->delegationService,
 			$this->messageScanService,
+			$this->appManager,
 		);
 
 		$first = $controller->getHtmlBody($messageId, true);
@@ -1524,6 +1534,7 @@ class MessagesControllerTest extends TestCase {
 			$this->cacheFactory,
 			$this->delegationService,
 			$this->messageScanService,
+			$this->appManager,
 		);
 
 		$actualResponse = $controller->smartReply(100);

@@ -19,6 +19,7 @@ use OCA\Mail\Db\MailAccount;
 use OCA\Mail\Db\Mailbox;
 use OCA\Mail\Exception\ClientException;
 use OCA\Mail\Exception\DelegationForbiddenException;
+use OCA\Mail\Exception\DuplicateEmailAddress;
 use OCA\Mail\IMAP\MailboxSync;
 use OCA\Mail\IMAP\Sync\Response;
 use OCA\Mail\Service\AccountService;
@@ -230,9 +231,6 @@ class AccountsControllerTest extends TestCase {
 		$this->accountService->expects(self::once())
 			->method('delete')
 			->with(self::equalTo($this->userId), self::equalTo($this->accountId));
-		$this->delegationService->expects(self::once())
-			->method('logDelegatedAction')
-			->with($this->userId, $this->userId, "$this->userId deleted account <$this->accountId> on behalf of $this->userId");
 
 		$response = $this->controller->destroy($this->accountId);
 
@@ -248,6 +246,38 @@ class AccountsControllerTest extends TestCase {
 		$this->expectException(DoesNotExistException::class);
 
 		$this->controller->destroy($this->accountId);
+	}
+
+	public function testDestroyAsDelegateIsRejected(): void {
+		$delegationService = $this->createMock(DelegationService::class);
+		$delegationService->method('resolveAccountUserId')
+			->willReturn('owner');
+		$controller = new AccountsController(
+			$this->appName,
+			$this->request,
+			$this->accountService,
+			$this->userId,
+			$this->logger,
+			$this->l10n,
+			$this->aliasesService,
+			$this->transmission,
+			$this->setupService,
+			$this->mailManager,
+			$this->syncService,
+			$this->config,
+			$this->hostValidator,
+			$this->mailboxSync,
+			$this->timeFactory,
+			$delegationService,
+			$this->appConfig,
+		);
+		$this->accountService->expects(self::once())
+			->method('delete')
+			->with($this->userId, $this->accountId)
+			->willThrowException(new ClientException("Account $this->accountId does not exist"));
+		$this->expectException(ClientException::class);
+
+		$controller->destroy($this->accountId);
 	}
 
 	public function testCreateManualSuccess(): void {
@@ -302,6 +332,35 @@ class AccountsControllerTest extends TestCase {
 
 		$expectedResponse = \OCA\Mail\Http\JsonResponse::error('Could not create account');
 		$response = $this->controller->create($accountName, $email, $imapHost, $imapPort, $imapSslMode, $imapUser, $smtpHost, $smtpPort, $smtpSslMode, $smtpUser, $imapPassword, $smtpPassword);
+
+		self::assertEquals($expectedResponse, $response);
+	}
+
+	public function testCreateManualNoDuplicate(): void {
+		$this->appConfig->expects(self::once())
+			->method('getValueBool')
+			->willReturn(true);
+		$email = 'user@domain.tld';
+		$accountName = 'Mail';
+		$imapHost = 'localhost';
+		$imapPort = 993;
+		$imapSslMode = 'ssl';
+		$imapUser = 'user@domain.tld';
+		$imapPassword = 'mypassword';
+		$smtpHost = 'localhost';
+		$smtpPort = 465;
+		$smtpSslMode = 'none';
+		$smtpUser = 'user@domain.tld';
+		$smtpPassword = 'mypassword';
+		$this->setupService->expects(self::once())
+			->method('createNewAccount')
+			->with($accountName, $email, $imapHost, $imapPort, $imapSslMode, $imapUser, $imapPassword, $smtpHost, $smtpPort, $smtpSslMode, $smtpUser, $smtpPassword, $this->userId, 'password')
+			->willThrowException(new DuplicateEmailAddress());
+
+		$expectedResponse = \OCA\Mail\Http\JsonResponse::fail([
+			'error' => 'ACCOUNT_EXISTS',
+		]);
+		$response = $this->controller->create($accountName, $email, $imapHost, $imapPort, $imapSslMode, $imapUser, $smtpHost, $smtpPort, $smtpSslMode, $smtpUser, $imapPassword, $smtpPassword, 'password');
 
 		self::assertEquals($expectedResponse, $response);
 	}

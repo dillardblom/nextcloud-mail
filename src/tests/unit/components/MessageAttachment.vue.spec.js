@@ -6,12 +6,19 @@
 import { createLocalVue, shallowMount } from '@vue/test-utils'
 import MessageAttachment from '../../../components/MessageAttachment.vue'
 import Nextcloud from '../../../mixins/Nextcloud.js'
-import { saveAttachmentForViewing } from '../../../service/AttachmentService.js'
+import { saveAttachmentForViewing, saveAttachmentToFiles } from '../../../service/AttachmentService.js'
 
+vi.mock('@nextcloud/dialogs', () => ({
+	showError: vi.fn(),
+	showSuccess: vi.fn(),
+}))
 vi.mock('../../../service/AttachmentService.js', () => ({
 	downloadAttachment: vi.fn(),
 	saveAttachmentForViewing: vi.fn().mockResolvedValue({ path: '/Mail attachments/a.pdf', fileId: 7 }),
-	saveAttachmentToFiles: vi.fn(),
+	saveAttachmentToFiles: vi.fn().mockResolvedValue(undefined),
+}))
+vi.mock('../../../util/filePicker.js', () => ({
+	pickFolder: vi.fn().mockResolvedValue('/Documents'),
 }))
 
 const localVue = createLocalVue()
@@ -19,6 +26,26 @@ const localVue = createLocalVue()
 localVue.mixin(Nextcloud)
 
 describe('MessageAttachment', () => {
+	it('saves the attachment of its own message, not of the message in the route', async () => {
+		const view = shallowMount(MessageAttachment, {
+			localVue,
+			propsData: {
+				id: '2',
+				messageId: 41,
+				fileName: 'price list.pdf',
+				url: '/apps/mail/api/messages/41/attachment/2',
+				size: 100,
+				mime: 'application/pdf',
+				mimeUrl: '',
+			},
+			mocks: { $route: { params: { threadId: 40 } } },
+		})
+
+		await view.vm.saveToCloud()
+
+		expect(saveAttachmentToFiles).toHaveBeenCalledWith(41, '2', '/Documents')
+	})
+
 	it('opens the attachment of its own message, not of the message in the route', async () => {
 		window.OC = { ...window.OC, appswebroots: { eurooffice: '/apps/eurooffice' } }
 		const tab = { location: '', close: vi.fn() }
