@@ -545,12 +545,14 @@ export default {
 				}
 			}
 
-			await Promise.all(this.selectedEnvelopes.map(async (envelope) => {
-				logger.info(`deleting thread ${envelope.threadRootId}`)
-				await this.mainStore.deleteThread({
-					envelope,
-				})
-			})).catch(async (error) => {
+			try {
+				for (const envelope of this.selectedEnvelopes) {
+					logger.info(`deleting thread ${envelope.threadRootId}`)
+					await this.mainStore.deleteThread({
+						envelope,
+					})
+				}
+			} catch (error) {
 				showError(await matchError(error, {
 					[NoTrashMailboxConfiguredError.getName()]() {
 						return t('mail', 'No trash folder configured')
@@ -560,7 +562,7 @@ export default {
 						return t('mail', 'Could not delete message')
 					},
 				}))
-			})
+			}
 			if (nextEnvelopeToNavigate) {
 				await this.$router.push({
 					name: 'message',
@@ -590,14 +592,20 @@ export default {
 		async archiveAllSelected() {
 			const envelopes = this.archivableSelection
 			this.unselectAll()
-			const results = await Promise.allSettled(envelopes.map((envelope) => this.mainStore.moveThread({
-				envelope,
-				destMailboxId: this.mainStore.getAccount(envelope.accountId).archiveMailboxId,
-			})))
-			const failed = results.filter((result) => result.status === 'rejected')
-			if (failed.length > 0) {
-				logger.error('could not archive messages', { errors: failed.map((result) => result.reason) })
-				showError(n('mail', 'Could not archive {number} thread', 'Could not archive {number} threads', failed.length, { number: failed.length }))
+			const errors = []
+			for (const envelope of envelopes) {
+				try {
+					await this.mainStore.moveThread({
+						envelope,
+						destMailboxId: this.mainStore.getAccount(envelope.accountId).archiveMailboxId,
+					})
+				} catch (error) {
+					errors.push(error)
+				}
+			}
+			if (errors.length > 0) {
+				logger.error('could not archive messages', { errors })
+				showError(n('mail', 'Could not archive {number} thread', 'Could not archive {number} threads', errors.length, { number: errors.length }))
 			}
 		},
 

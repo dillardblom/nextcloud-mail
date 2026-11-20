@@ -18,7 +18,7 @@ The last column refers to the item in our own wish list.
 
 | Change | Branch | Upstream | List |
 |---|---|---|---|
-| Fold an account to a single line, indent its mailboxes | `feat/fold-accounts` | PR #13736, open | 1 |
+| Fold an account to a single line, indent its mailboxes | `feat/fold-accounts` | PR #13736, open, approved (rebased onto `main` again 2026-11-20) | 1 |
 | Optional account label in combined mailboxes, label as mailbox name, label in the navigation | `feat/account-label` (+ `v5.12.3-db-account-label-name`) | not submitted | 2 |
 | Maximized composer uses the screen and is remembered after a reload | `feat/composer-maximize` | not submitted | 3 |
 | Reply to the open message with Ctrl+R / Cmd+R | `feat/reply-shortcut` | not submitted | 4 |
@@ -28,7 +28,7 @@ The last column refers to the item in our own wish list.
 | Abort superseded envelope list requests | `perf/cancel-stale-envelope-loads` | not submitted | 5 |
 | Fetch the text parts of a message in one request | `perf/message-open-single-fetch` | not submitted | 5 |
 | Apply the limit once across body search chunks | `perf/body-search-global-limit` | not submitted | 5 |
-| Sync: at most one page of new messages when the client knows none (fixed the sync OOM loop) | `fix/sync-without-known-ids` | PR #13823, open | – |
+| Sync: at most one page of new messages when the client knows none (fixed the sync OOM loop) | `fix/sync-without-known-ids` | PR #13823, **merged** 2026-11-20 | – |
 | Show the own build version in About | – (build only) | never | – |
 | No draft of a reply or forward the user didn't edit | `fix/no-draft-without-edits` | not submitted (main port needed) | 9 |
 | No draft of a new message with nothing but the signature (no text, subject, recipients or attachments) | `fix/no-draft-signature-only` | not submitted | 9 |
@@ -45,7 +45,7 @@ The last column refers to the item in our own wish list.
 | Favorite among the actions shown when hovering a message | `feat/hover-favorite` | not submitted | 20 |
 | Refresh the open message list every 5/15/30/60 minutes (default 15) or manually | `feat/auto-refresh` | not submitted | 19 |
 | In a thread, save or open the attachment of its own message (was: same attachment number of the selected message, e.g. an .eml instead of a PDF) | `fix/attachment-of-its-own-message` (upstream: `fix/attachment-save-own-message`) | PR #14007, **merged** in `main` ("Save to Files" part; opening in office is own-build only) | 23 |
-| Archive several selected threads at once, each to the archive mailbox of its own account | `feat/archive-selection` | not submitted | 24 |
+| Archive several selected threads at once, each to the archive mailbox of its own account (one thread after another, see below) | `feat/archive-selection` | not submitted | 24 |
 | Play audio attachments in the message (player in the attachment, click plays or pauses) | `feat/play-audio-attachments` | not submitted | 25 |
 | Table-based HTML signatures keep their layout (table and cell attributes and styles, linked images, no figure or cell paragraph margins) | `fix/signature-html-formatting` | not submitted | – |
 | Composer shows images from hosts the admin allows (setting `composer_image_domains`, see below) | `fix/signature-html-formatting` | not submitted | – |
@@ -54,6 +54,9 @@ The last column refers to the item in our own wish list.
 | Saving to Files leaves no empty file behind when the write is blocked (e.g. by the antivirus app) | `fix/no-empty-file-after-blocked-save` | not submitted | – |
 | Openable attachments are copied to "Mail attachments" when a message is opened (not from junk, up to 25 MB), so a click opens at once; copies unused for 7 days and unchanged move to the trash bin, changed ones stay | `feat/prefetch-attachments` | not submitted | – |
 | Virus scan of received mail with ClamAV: an infected message has its attachments blocked (download, preview, zip, Save to Files, open, forward, API) and moves to junk or trash; settings in Administration > Groupware (see below) | `feat/attachment-virus-scan` | proposed in issue #14091 | – |
+| Delete selected threads one after another instead of all at once (parallel logins were refused by the mail server, after three refusals Mail locked the account for up to three hours: "Too many auth attempts") | `fix/sequential-thread-delete` (against `main`) | not submitted | – |
+| Delete a thread over one IMAP connection instead of one login per message (`main` already batches this) | `fix/thread-delete-one-connection` | not needed upstream | – |
+| Actions menu of an account named for screen readers, as in PR #13736 | `feat/fold-accounts` | PR #13736 | 1 |
 
 ## Settings
 
@@ -138,7 +141,7 @@ builds; "main" means against upstream `main`, for a pull request.
 | `perf/cancel-stale-envelope-loads` | main | yes | |
 | `perf/message-open-single-fetch` | main | yes | |
 | `perf/body-search-global-limit` | main | yes | |
-| `fix/sync-without-known-ids` | main | yes | PR #13823 |
+| `fix/sync-without-known-ids` | main | yes | PR #13823, merged |
 | `fix/sync-init-reconcile-known` | main | no | follow-up on #13823: reconcile known messages on the initial sync; not submitted |
 | `fix/partial-sync-bound` | main | no | at most `MAX_NEW_MESSAGES` new messages per partial sync (upstream issue #13778); not submitted |
 | `fix/sync-token-before-search` | main | yes | PR #14030 |
@@ -158,6 +161,8 @@ builds; "main" means against upstream `main`, for a pull request.
 | `fix/attachment-of-its-own-message` | 5.12 | yes | build version, with opening in office |
 | `fix/attachment-save-own-message` | main | – | PR #14007, merged |
 | `feat/archive-selection` | 5.12 | yes | |
+| `fix/sequential-thread-delete` | main | yes | not submitted yet |
+| `fix/thread-delete-one-connection` | 5.12 | yes | `main` already batches this |
 | `feat/play-audio-attachments` | 5.12 | yes | |
 | `fix/signature-html-formatting` | 5.12 | yes | see Notes for upstream |
 | `fix/html-tel-links` | main | yes | |
