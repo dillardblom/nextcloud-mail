@@ -15,7 +15,7 @@ The last column refers to the item in our own wish list.
 
 | Change | Branch | Upstream | List |
 |---|---|---|---|
-| Fold an account to a single line, indent its mailboxes | `feat/fold-accounts` | PR #13736, open, approved (rebased onto `main` again 2026-11-20) | 1 |
+| Fold an account to a single line, indent its mailboxes | `feat/fold-accounts` | PR #13736, **merged** 2026-11-20 (in `main`, not in a 5.13 release) | 1 |
 | Optional account label in combined mailboxes, label as mailbox name, label in the navigation | `feat/account-label` (+ `v5.12.3-db-account-label-name`) | not submitted | 2 |
 | Maximized composer uses the screen and is remembered after a reload | `feat/composer-maximize` | not submitted | 3 |
 | Reply to the open message with Ctrl+R / Cmd+R | `feat/reply-shortcut` | not submitted | 4 |
@@ -48,9 +48,9 @@ The last column refers to the item in our own wish list.
 | Composer shows images from hosts the admin allows (setting `composer_image_domains`, see below) | `fix/signature-html-formatting` | not submitted | – |
 | Phone number links (`tel:`) in received HTML messages stay clickable | `fix/html-tel-links` (against `main`) | not submitted | – |
 | Sync: no message skipped for good when it arrives during a sync (token taken before the search; new messages filtered by UID, so a missing one below the highest cached UID is synced too) | `fix/sync-token-before-search` (against `main`) | PR #14030, open | – |
-| Delete selected threads one after another instead of all at once (parallel logins were refused by the mail server, after three refusals Mail locked the account for up to three hours: "Too many auth attempts") | `fix/sequential-thread-delete` (against `main`) | not submitted | – |
+| Delete selected threads one after another instead of all at once (parallel logins were refused by the mail server, after three refusals Mail locked the account for up to three hours: "Too many auth attempts") | `fix/sequential-thread-delete` (against `main`) | PR #14267, open | – |
 | Delete a thread over one IMAP connection instead of one login per message (`main` already batches this) | `fix/thread-delete-one-connection` | not needed upstream | – |
-| Actions menu of an account named for screen readers, as in PR #13736 | `feat/fold-accounts` | PR #13736 | 1 |
+| Actions menu of an account named for screen readers, as in PR #13736 | `feat/fold-accounts` | PR #13736, merged | 1 |
 
 ## Settings
 
