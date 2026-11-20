@@ -912,17 +912,29 @@ class MailManager implements IMailManager {
 			$messageInTrash
 		);
 
-		foreach ($messages as $message) {
-			$this->logger->debug('deleting message', [
-				'messageId' => $message['messageUid'],
-				'mailboxId' => $mailbox->getId(),
-			]);
+		$client = $this->imapClientFactory->getClient($account);
+		try {
+			foreach ($messages as $message) {
+				$this->logger->debug('deleting message', [
+					'messageId' => $message['messageUid'],
+					'mailboxId' => $mailbox->getId(),
+				]);
 
-			$this->deleteMessage(
-				$account,
-				$message['mailboxName'],
-				$message['messageUid']
-			);
+				try {
+					$sourceMailbox = $this->mailboxMapper->find($account, $message['mailboxName']);
+				} catch (DoesNotExistException $e) {
+					throw new ServiceException("Source mailbox {$message['mailboxName']} does not exist", 0, $e);
+				}
+
+				$this->deleteMessageWithClient(
+					$account,
+					$sourceMailbox,
+					$message['messageUid'],
+					$client
+				);
+			}
+		} finally {
+			$client->logout();
 		}
 	}
 
