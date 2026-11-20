@@ -15,7 +15,7 @@ The last column refers to the item in our own wish list.
 
 | Change | Branch | Upstream | List |
 |---|---|---|---|
-| Fold an account to a single line, indent its mailboxes | `feat/fold-accounts` | PR #13736, open | 1 |
+| Fold an account to a single line, indent its mailboxes | `feat/fold-accounts` | PR #13736, open, approved (rebased onto `main` again 2026-11-20) | 1 |
 | Optional account label in combined mailboxes, label as mailbox name, label in the navigation | `feat/account-label` (+ `v5.12.3-db-account-label-name`) | not submitted | 2 |
 | Maximized composer uses the screen and is remembered after a reload | `feat/composer-maximize` | not submitted | 3 |
 | Reply to the open message with Ctrl+R / Cmd+R | `feat/reply-shortcut` | not submitted | 4 |
@@ -25,7 +25,7 @@ The last column refers to the item in our own wish list.
 | Abort superseded envelope list requests | `perf/cancel-stale-envelope-loads` | not submitted | 5 |
 | Fetch the text parts of a message in one request | `perf/message-open-single-fetch` | not submitted | 5 |
 | Apply the limit once across body search chunks | `perf/body-search-global-limit` | not submitted | 5 |
-| Sync: at most one page of new messages when the client knows none (fixed the sync OOM loop) | `fix/sync-without-known-ids` | PR #13823, open | – |
+| Sync: at most one page of new messages when the client knows none (fixed the sync OOM loop) | `fix/sync-without-known-ids` | PR #13823, **merged** 2026-11-20 | – |
 | Show the own build version in About | – (build only) | never | – |
 | No draft of a reply or forward the user didn't edit | `fix/no-draft-without-edits` | not submitted (main port needed) | 9 |
 | No draft of a new message with nothing but the signature (no text, subject, recipients or attachments) | `fix/no-draft-signature-only` | not submitted | 9 |
@@ -42,12 +42,15 @@ The last column refers to the item in our own wish list.
 | Favorite among the actions shown when hovering a message | `feat/hover-favorite` | not submitted | 20 |
 | Refresh the open message list every 5/15/30/60 minutes (default 15) or manually | `feat/auto-refresh` | not submitted | 19 |
 | In a thread, save or open the attachment of its own message (was: same attachment number of the selected message, e.g. an .eml instead of a PDF) | `fix/attachment-of-its-own-message` (upstream: `fix/attachment-save-own-message`) | PR #14007, open ("Save to Files" part; opening in office is own-build only) | 23 |
-| Archive several selected threads at once, each to the archive mailbox of its own account | `feat/archive-selection` | not submitted | 24 |
+| Archive several selected threads at once, each to the archive mailbox of its own account (one thread after another, see below) | `feat/archive-selection` | not submitted | 24 |
 | Play audio attachments in the message (player in the attachment, click plays or pauses) | `feat/play-audio-attachments` | not submitted | 25 |
 | Table-based HTML signatures keep their layout (table and cell attributes and styles, linked images, no figure or cell paragraph margins) | `fix/signature-html-formatting` | not submitted | – |
 | Composer shows images from hosts the admin allows (setting `composer_image_domains`, see below) | `fix/signature-html-formatting` | not submitted | – |
 | Phone number links (`tel:`) in received HTML messages stay clickable | `fix/html-tel-links` (against `main`) | not submitted | – |
 | Sync: no message skipped for good when it arrives during a sync (token taken before the search; new messages filtered by UID, so a missing one below the highest cached UID is synced too) | `fix/sync-token-before-search` (against `main`) | PR #14030, open | – |
+| Delete selected threads one after another instead of all at once (parallel logins were refused by the mail server, after three refusals Mail locked the account for up to three hours: "Too many auth attempts") | `fix/sequential-thread-delete` (against `main`) | not submitted | – |
+| Delete a thread over one IMAP connection instead of one login per message (`main` already batches this) | `fix/thread-delete-one-connection` | not needed upstream | – |
+| Actions menu of an account named for screen readers, as in PR #13736 | `feat/fold-accounts` | PR #13736 | 1 |
 
 ## Settings
 
