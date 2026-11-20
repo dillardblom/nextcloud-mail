@@ -1,12 +1,12 @@
-# Own build (v5.13.1-db, branch `branch-5-13`)
+# Own build (v5.13.3-db, branch `branch-5-13`)
 
-Own build of Nextcloud Mail: upstream tag v5.13.1 plus the changes below, while they wait for
+Own build of Nextcloud Mail: upstream tag v5.13.3 plus the changes below, while they wait for
 review upstream. This branch is never submitted as a pull request; every change also lives on its
 own branch (against `main` where it has been submitted upstream).
 
 The installable package is attached to the matching release of this repository. Its version is
-5.13.1.2: above the upstream number, so the database changes of this build run, and still
-below 5.13.2, so Nextcloud replaces it with the next official Mail release from the app store;
+5.13.3.1: above the upstream number, so the database changes of this build run, and still
+below 5.13.4, so Nextcloud replaces it with the next official Mail release from the app store;
 install the next own build instead if you want to keep these changes. Nextcloud does not install a
 lower version over it, so going back to an older package needs the version in its
 `appinfo/info.xml` raised. Use it at your own
@@ -127,7 +127,7 @@ builds; "main" means against upstream `main`, for a pull request.
 
 | Branch | Base | In this build | Note |
 |---|---|---|---|
-| `branch-5-13` | v5.13.1 | – | this build |
+| `branch-5-13` | v5.13.3 (was v5.13.1 until 2026-11-20) | – | this build |
 | `v5.12.3-db` … `v5.12.6-db` | 5.12 | merged | earlier own builds; `v5.12.6-db` still takes later work |
 | `v5.12.2-db` | 5.12 | no | first own build; local and fork copies differ, the fork is the newer one |
 | `feat/fold-accounts` | main | yes | PR #13736 |
@@ -175,7 +175,7 @@ Not in the list: `backup/*` (local states before a squash or rewrite) and
 
 ## Install
 
-Download the newest `mail-v5.13.1-db.N.tar.gz` from the [releases](https://github.com/dillardblom/nextcloud-mail/releases), then on the server:
+Download the newest `mail-v5.13.3-db.N.tar.gz` (or `mail-v5.13.3-db.tar.gz`) from the [releases](https://github.com/dillardblom/nextcloud-mail/releases), then on the server:
 
 1. Make a copy of the current `apps/mail` or `custom_apps/mail` folder.
 2. Unpack the package next to that folder as the web server user, and swap the two folders.
