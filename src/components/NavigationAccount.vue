@@ -32,7 +32,10 @@
 				</NcCounterBubble>
 				<span class="hidden-visually">{{ unreadLabel }}</span>
 			</template>
-			<NcActions class="navigation-account-header__actions" @update:open="onMenuToggle">
+			<NcActions
+				class="navigation-account-header__actions"
+				:aria-label="t('mail', 'Actions for {email}', { email: account.emailAddress })"
+				@update:open="onMenuToggle">
 				<template v-if="isDisabled">
 					<NcActionText :name="t('mail', 'Provisioned account is disabled')">
 						<template #icon>
