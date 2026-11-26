@@ -11,7 +11,6 @@ namespace OCA\Mail\Tests\Unit\Service\Sync;
 
 use OCA\Mail\Account;
 use OCA\Mail\Db\Mailbox;
-use OCA\Mail\Db\Message;
 use OCA\Mail\Db\MessageMapper;
 use OCA\Mail\Exception\MailboxNotCachedException;
 use OCA\Mail\IMAP\IMAPClientFactory;
@@ -20,7 +19,6 @@ use OCA\Mail\IMAP\MailboxSync;
 use OCA\Mail\IMAP\PreviewEnhancer;
 use OCA\Mail\IMAP\Sync\Response;
 use OCA\Mail\Service\Search\FilterStringParser;
-use OCA\Mail\Service\Search\SearchQuery;
 use OCA\Mail\Service\Sync\ImapToDbSynchronizer;
 use OCA\Mail\Service\Sync\SyncService;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -127,41 +125,26 @@ final class SyncServiceTest extends TestCase {
 		$this->assertEquals($expectedResponse, $response);
 	}
 
-	public function testSyncWithoutKnownIdsReturnsOnePageOfNewMessages(): void {
+	public function testInitialSyncReturnsNoMessages(): void {
 		$account = $this->createMock(Account::class);
 		$account->method('getUserId')->willReturn('user');
 		$mailbox = new Mailbox();
 		$mailbox->setMessages(33000);
 		$mailbox->setUnseen(24000);
+		$this->clientFactory
+			->method('getClient')
+			->willReturn($this->createStub(\Horde_Imap_Client_Socket::class));
+		$this->synchronizer->expects($this->once())
+			->method('sync');
+		// The client loads the first page itself, so the cache is not read
 		$this->messageMapper->expects($this->never())
 			->method('findAllIds');
 		$this->messageMapper->expects($this->never())
 			->method('findNewIds');
-		$this->messageMapper->expects($this->once())
-			->method('findIdsByQuery')
-			->with($mailbox, $this->isInstanceOf(SearchQuery::class), 'DESC', 20)
-			->willReturn([3, 2, 1]);
-		$this->messageMapper->expects($this->exactly(2))
-			->method('findByMailboxAndIds')
-			->willReturnCallback(fn (Mailbox $mb, string $userId, array $ids) => array_map(static function (int $id): Message {
-				$message = new Message();
-				$message->setId($id);
-				return $message;
-			}, $ids));
-		$previewEnhancer = $this->createMock(PreviewEnhancer::class);
-		$previewEnhancer->method('process')
-			->willReturnArgument(2);
-		$syncService = new SyncService(
-			$this->clientFactory,
-			$this->synchronizer,
-			$this->createStub(FilterStringParser::class),
-			$this->messageMapper,
-			$previewEnhancer,
-			$this->createStub(\Psr\Log\LoggerInterface::class),
-			$this->mailboxSync
-		);
+		$this->messageMapper->expects($this->never())
+			->method('findByMailboxAndIds');
 
-		$response = $syncService->syncMailbox(
+		$response = $this->syncService->syncMailbox(
 			$account,
 			$mailbox,
 			0,
@@ -170,7 +153,37 @@ final class SyncServiceTest extends TestCase {
 			[]
 		);
 
-		$this->assertSame([3, 2, 1], array_map(static fn (Message $message) => $message->getId(), $response->getNewMessages()));
-		$this->assertSame([], $response->getChangedMessages());
+		$this->assertEquals(new Response([], [], [], new MailboxStats(33000, 24000, null)), $response);
+	}
+
+	public function testPartialSyncReadsTheCache(): void {
+		$account = $this->createMock(Account::class);
+		$account->method('getUserId')->willReturn('user');
+		$mailbox = new Mailbox();
+		$mailbox->setMessages(3);
+		$mailbox->setUnseen(1);
+		$mailbox->setSyncNewToken('token');
+		$mailbox->setSyncChangedToken('token');
+		$mailbox->setSyncVanishedToken('token');
+		$this->clientFactory
+			->method('getClient')
+			->willReturn($this->createStub(\Horde_Imap_Client_Socket::class));
+		$this->synchronizer->expects($this->once())
+			->method('sync');
+		$this->messageMapper->expects($this->once())
+			->method('findNewIds')
+			->with($mailbox, [1, 2], null, 'DESC')
+			->willReturn([3]);
+		$this->messageMapper->method('findByMailboxAndIds')
+			->willReturn([]);
+
+		$this->syncService->syncMailbox(
+			$account,
+			$mailbox,
+			0,
+			true,
+			null,
+			[1, 2]
+		);
 	}
 }

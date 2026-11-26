@@ -538,7 +538,7 @@
 					:style="{ 'background-color': tag.color }" />
 				<span
 					class="tag-group__label"
-					:style="{ color: tag.color }">
+					:style="{ color: tagTextColor(tag.color, isDarkTheme) }">
 					{{ translateTagDisplayName(tag) }}
 				</span>
 			</div>
@@ -588,6 +588,7 @@ import {
 	NcAssistantIcon,
 	NcCheckboxRadioSwitch,
 } from '@nextcloud/vue'
+import { useIsDarkTheme } from '@nextcloud/vue/composables/useIsDarkTheme'
 import escapeHtml from 'escape-html'
 import { mapState, mapStores } from 'pinia'
 import AlarmIcon from 'vue-material-design-icons/Alarm.vue'
@@ -643,7 +644,7 @@ import useMainStore from '../store/mainStore.js'
 import { mailboxHasRights } from '../util/acl.js'
 import { pickFolder } from '../util/filePicker.js'
 import { flatRelativeDatetime, groupedRelativeDatetime, messageDateTime } from '../util/relativeDatetime.js'
-import { translateTagDisplayName } from '../util/tag.js'
+import { tagTextColor, translateTagDisplayName } from '../util/tag.js'
 import { hiddenTags } from './tags.js'
 
 export default {
@@ -750,6 +751,7 @@ export default {
 
 	data() {
 		return {
+			isDarkTheme: useIsDarkTheme(),
 			showMoveModal: false,
 			showEventModal: false,
 			showTaskModal: false,
@@ -1097,6 +1099,7 @@ export default {
 	},
 
 	methods: {
+		tagTextColor,
 		/**
 		 * Reply from the list, without opening the message first
 		 *

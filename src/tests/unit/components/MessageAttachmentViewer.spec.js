@@ -9,7 +9,7 @@ import MessageAttachment from '../../../components/MessageAttachment.vue'
 import Nextcloud from '../../../mixins/Nextcloud.js'
 import { saveAttachmentForViewing } from '../../../service/AttachmentService.js'
 
-vi.mock('@nextcloud/dialogs', () => ({ showError: vi.fn(), showSuccess: vi.fn() }))
+vi.mock('@nextcloud/dialogs', async (importOriginal) => ({ ...await importOriginal(), showError: vi.fn(), showSuccess: vi.fn() }))
 
 vi.mock('../../../service/AttachmentService.js', () => ({
 	downloadAttachment: vi.fn(),
