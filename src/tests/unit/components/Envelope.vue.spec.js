@@ -412,6 +412,8 @@ describe('Envelope', () => {
 
 			expect(view.vm.accountLabel).toMatchObject({ text: 'Work', color: '#0082c9' })
 			expect(view.find('.envelope__account-label-text').text()).toBe('Work')
+			expect(view.vm.accountLabel.textColor).toContain('#0082c9')
+			expect(view.vm.accountLabel.textColor).not.toBe('#0082c9')
 		})
 
 		it('shows the label of the account in the priority inbox', () => {

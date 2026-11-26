@@ -70,7 +70,7 @@
 		<NcAppSettingsSection
 			v-if="account"
 			id="unified-label"
-			:name="t('mail', 'Label in combined mailboxes')">
+			:name="t('mail', 'Account label')">
 			<AccountLabelSettings :key="account.accountId" :account="account" />
 		</NcAppSettingsSection>
 		<NcAppSettingsSection

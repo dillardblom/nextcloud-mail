@@ -139,7 +139,7 @@
 					<span
 						v-if="accountLabel.text"
 						class="envelope__account-label-text"
-						:style="{ color: accountLabel.color }">
+						:style="{ color: accountLabel.textColor }">
 						{{ accountLabel.text }}
 					</span>
 					<span v-else class="hidden-visually">{{ accountLabel.description }}</span>
@@ -839,9 +839,11 @@ export default {
 			if (!account?.unifiedLabel && !account?.unifiedLabelColor) {
 				return null
 			}
+			const color = account.unifiedLabelColor || 'var(--color-text-maxcontrast)'
 			return {
 				text: account.unifiedLabel,
-				color: account.unifiedLabelColor || 'var(--color-text-maxcontrast)',
+				color,
+				textColor: account.unifiedLabelColor ? tagTextColor(account.unifiedLabelColor, this.isDarkTheme) : color,
 				description: t('mail', 'Received in {email}', { email: account.emailAddress }),
 			}
 		},

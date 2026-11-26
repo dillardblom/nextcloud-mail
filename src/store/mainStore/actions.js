@@ -228,6 +228,7 @@ function keepThreadSize(existing, envelope) {
 export default function mainStoreActions() {
 	let accountSettingsSave = Promise.resolve()
 	const foldedVersions = {}
+	const unifiedLabelVersions = {}
 
 	return {
 		updateSyncTimestamp() {
@@ -445,11 +446,15 @@ export default function mainStoreActions() {
 				this.setAccountSettingMutation({ accountId, key: 'unifiedLabelAsName', value: asName })
 			}
 
+			const version = (unifiedLabelVersions[accountId] ?? 0) + 1
+			unifiedLabelVersions[accountId] = version
 			apply({ label, color, asName })
 			try {
 				await this.setAccountSetting({ accountId, key: 'unifiedLabelColor', value: color })
 			} catch (error) {
-				apply(previous)
+				if (unifiedLabelVersions[accountId] === version) {
+					apply(previous)
+				}
 				throw error
 			}
 		},

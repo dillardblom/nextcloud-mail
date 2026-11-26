@@ -20,8 +20,9 @@
 			<div class="account-label-settings__color">
 				<span class="account-label-settings__color-label">{{ t('mail', 'Color') }}</span>
 				<NcColorPicker
-					v-model="color"
-					@submit="onColorSubmit">
+					v-model="pickerColor"
+					@submit="onColorSubmit"
+					@closed="onColorPickerClosed">
 					<NcButton
 						variant="tertiary"
 						:aria-label="t('mail', 'Choose a color for the label')"
@@ -48,7 +49,7 @@
 			:disabled="saving || !label.trim()"
 			type="switch"
 			@update:model-value="onAsNameChange">
-			{{ t('mail', 'Use label as mailbox name') }}
+			{{ t('mail', 'Use label as account name') }}
 		</NcCheckboxRadioSwitch>
 	</div>
 </template>
@@ -81,6 +82,7 @@ export default {
 		return {
 			label: this.account.unifiedLabel,
 			color: this.account.unifiedLabelColor,
+			pickerColor: this.account.unifiedLabelColor,
 			asName: this.account.unifiedLabelAsName,
 			maxLength: UNIFIED_LABEL_MAX_LENGTH,
 			saving: false,
@@ -94,12 +96,18 @@ export default {
 	methods: {
 		async onColorSubmit(color) {
 			this.color = color
+			this.pickerColor = color
 			await this.save()
+		},
+
+		onColorPickerClosed() {
+			this.pickerColor = this.color
 		},
 
 		async clear() {
 			this.label = ''
 			this.color = ''
+			this.pickerColor = ''
 			this.asName = false
 			await this.save()
 		},
@@ -131,6 +139,7 @@ export default {
 				showError(t('mail', 'Could not save the label'))
 				this.label = this.account.unifiedLabel
 				this.color = this.account.unifiedLabelColor
+				this.pickerColor = this.account.unifiedLabelColor
 				this.asName = this.account.unifiedLabelAsName
 			} finally {
 				this.saving = false
