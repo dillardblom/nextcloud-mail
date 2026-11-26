@@ -1,12 +1,12 @@
-# Own build (v5.13.3-db, branch `branch-5-13`)
+# Own build (v5.13.4-db, branch `branch-5-13`)
 
-Own build of Nextcloud Mail: upstream tag v5.13.3 plus the changes below, while they wait for
+Own build of Nextcloud Mail: upstream tag v5.13.4 plus the changes below, while they wait for
 review upstream. This branch is never submitted as a pull request; every change also lives on its
 own branch (against `main` where it has been submitted upstream).
 
 The installable package is attached to the matching release of this repository. Its version is
-5.13.3.1: above the upstream number, so the database changes of this build run, and still
-below 5.13.4, so Nextcloud replaces it with the next official Mail release from the app store;
+5.13.4.1: above the upstream number, so the database changes of this build run, and still
+below 5.13.5, so Nextcloud replaces it with the next official Mail release from the app store;
 install the next own build instead if you want to keep these changes. Nextcloud does not install a
 lower version over it, so going back to an older package needs the version in its
 `appinfo/info.xml` raised. Use it at your own
@@ -19,7 +19,7 @@ The last column refers to the item in our own wish list.
 | Change | Branch | Upstream | List |
 |---|---|---|---|
 | Fold an account to a single line, indent its mailboxes | `feat/fold-accounts` | PR #13736, **merged** 2026-11-20 (in `main`, not in a 5.13 release) | 1 |
-| Optional account label in combined mailboxes, label as mailbox name, label in the navigation | `feat/account-label` (+ `v5.12.3-db-account-label-name`) | not submitted | 2 |
+| Optional account label in combined mailboxes, label as mailbox name, label in the navigation | `feat/account-label` (+ `v5.12.3-db-account-label-name`) | ready as one commit on `feat/account-label` (against `main`, Vue 3), not submitted | 2 |
 | Maximized composer uses the screen and is remembered after a reload | `feat/composer-maximize` | not submitted | 3 |
 | Reply to the open message with Ctrl+R / Cmd+R | `feat/reply-shortcut` | not submitted | 4 |
 | Mailbox search: subqueries instead of joins, correlated subqueries, tag ids as integers | `perf/search-recipient-subqueries` (deleted) | PR #13803, **merged**; backported to stable5.13 (#13848) and stable5.12 (#13851) | 5 |
@@ -28,7 +28,7 @@ The last column refers to the item in our own wish list.
 | Abort superseded envelope list requests | `perf/cancel-stale-envelope-loads` | not submitted | 5 |
 | Fetch the text parts of a message in one request | `perf/message-open-single-fetch` | not submitted | 5 |
 | Apply the limit once across body search chunks | `perf/body-search-global-limit` | not submitted | 5 |
-| Sync: at most one page of new messages when the client knows none (fixed the sync OOM loop) | `fix/sync-without-known-ids` | PR #13823, **merged** 2026-11-20 | – |
+| Sync: at most one page of new messages when the client knows none (fixed the sync OOM loop) | `fix/sync-without-known-ids` | PR #13823, **merged** 2026-11-20, in upstream 5.13.4; the build now carries the upstream version (the initial sync returns no messages, the client loads the first page itself) | – |
 | Show the own build version in About | – (build only) | never | – |
 | No draft of a reply or forward the user didn't edit | `fix/no-draft-without-edits` | not submitted (main port needed) | 9 |
 | No draft of a new message with nothing but the signature (no text, subject, recipients or attachments) | `fix/no-draft-signature-only` | not submitted | 9 |
@@ -54,9 +54,11 @@ The last column refers to the item in our own wish list.
 | Saving to Files leaves no empty file behind when the write is blocked (e.g. by the antivirus app) | `fix/no-empty-file-after-blocked-save` | not submitted | – |
 | Openable attachments are copied to "Mail attachments" when a message is opened (not from junk, up to 25 MB), so a click opens at once; copies unused for 7 days and unchanged move to the trash bin, changed ones stay | `feat/prefetch-attachments` | not submitted | – |
 | Virus scan of received mail with ClamAV: an infected message has its attachments blocked (download, preview, zip, Save to Files, open, forward, API) and moves to junk or trash; settings in Administration > Groupware (see below) | `feat/attachment-virus-scan` | proposed in issue #14091 | – |
-| Delete selected threads one after another instead of all at once (parallel logins were refused by the mail server, after three refusals Mail locked the account for up to three hours: "Too many auth attempts") | `fix/sequential-thread-delete` (against `main`) | PR #14267, open | – |
+| Delete selected threads one after another instead of all at once (parallel logins were refused by the mail server, after three refusals Mail locked the account for up to three hours: "Too many auth attempts") | `fix/sequential-thread-delete` (against `main`) | PR #14267, **merged** 2026-11-24 (in `main`) | – |
 | Delete a thread over one IMAP connection instead of one login per message (`main` already batches this) | `fix/thread-delete-one-connection` | not needed upstream | – |
 | Actions menu of an account named for screen readers, as in PR #13736 | `feat/fold-accounts` | PR #13736, merged | 1 |
+| "Show priority inbox" switch in Appearance: when off, the priority inbox is not in the navigation and the app opens the unified inbox (issue #7630) | `feat/hide-priority-inbox` (against `main`), 5.13 port `feat/hide-priority-inbox-5.13` | not submitted | 6 |
+| "Use AI features" switch in Assistance features: when off, no summaries, smart replies, translation, event suggestions or follow-up reminders, and the backend sends none of the user's messages to the assistant; the follow-up switch is now also enforced in the backend (issue #12550) | `feat/user-ai-toggle` (against `main`), 5.13 port `feat/user-ai-toggle-5.13` | not submitted | – |
 
 ## Settings
 
@@ -127,13 +129,13 @@ builds; "main" means against upstream `main`, for a pull request.
 
 | Branch | Base | In this build | Note |
 |---|---|---|---|
-| `branch-5-13` | v5.13.3 (was v5.13.1 until 2026-11-20) | – | this build |
+| `branch-5-13` | v5.13.4 (v5.13.1 until 2026-11-20, v5.13.3 until 2026-11-26) | – | this build |
 | `v5.12.3-db` … `v5.12.6-db` | 5.12 | merged | earlier own builds; `v5.12.6-db` still takes later work |
 | `v5.12.2-db` | 5.12 | no | first own build; local and fork copies differ, the fork is the newer one |
 | `feat/fold-accounts` | main | yes | PR #13736, merged |
 | `v5.12.2-db-pr13736`, `v5.12.2-db-pr13736-align` | 5.12 | no | 5.12 versions of #13736 tried in the build; replaced by `feat/fold-accounts` |
 | `pr-13736-screenshots` | main | no | screenshots for #13736 |
-| `feat/account-label`, `v5.12.3-db-account-label-name` | main / 5.12 | yes | the fork copy of `feat/account-label` has one commit more |
+| `feat/account-label`, `v5.12.3-db-account-label-name` | main / 5.12 | yes | `feat/account-label` rebuilt 2026-11-26 on current `main` (Vue 3) as one commit with the navigation label; the local and fork copies are the same again |
 | `feat/composer-maximize` | main | yes | |
 | `feat/reply-shortcut` | main | yes | |
 | `perf/preview-enhancer-attachments` | main | yes | |
@@ -161,7 +163,9 @@ builds; "main" means against upstream `main`, for a pull request.
 | `fix/attachment-of-its-own-message` | 5.12 | yes | build version, with opening in office |
 | `fix/attachment-save-own-message` | main | – | PR #14007, merged |
 | `feat/archive-selection` | 5.12 | yes | |
-| `fix/sequential-thread-delete` | main | yes | PR #14267 |
+| `fix/sequential-thread-delete` | main | yes | PR #14267, merged |
+| `feat/hide-priority-inbox`, `feat/hide-priority-inbox-5.13` | main / 5.13 | yes | |
+| `feat/user-ai-toggle`, `feat/user-ai-toggle-5.13` | main / 5.13 | yes | |
 | `fix/thread-delete-one-connection` | 5.12 | yes | `main` already batches this |
 | `feat/play-audio-attachments` | 5.12 | yes | |
 | `fix/signature-html-formatting` | 5.12 | yes | see Notes for upstream |
@@ -175,7 +179,7 @@ Not in the list: `backup/*` (local states before a squash or rewrite) and
 
 ## Install
 
-Download the newest `mail-v5.13.3-db.N.tar.gz` (or `mail-v5.13.3-db.tar.gz`) from the [releases](https://github.com/dillardblom/nextcloud-mail/releases), then on the server:
+Download the newest `mail-v5.13.4-db.N.tar.gz` (or `mail-v5.13.4-db.tar.gz`) from the [releases](https://github.com/dillardblom/nextcloud-mail/releases), then on the server:
 
 1. Make a copy of the current `apps/mail` or `custom_apps/mail` folder.
 2. Unpack the package next to that folder as the web server user, and swap the two folders.
