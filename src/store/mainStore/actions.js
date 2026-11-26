@@ -2527,6 +2527,9 @@ export default function mainStoreActions() {
 		isPriorityInboxShown() {
 			return this.getPreference('priority-inbox', 'true') !== 'false'
 		},
+		isAiEnabled() {
+			return this.getPreference('ai-features', 'true') !== 'false'
+		},
 		getAccount(id) {
 			return this.accountsUnmapped[id]
 		},

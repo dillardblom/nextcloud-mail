@@ -188,7 +188,7 @@ class PageControllerTest extends TestCase {
 		$account1 = $this->createMock(Account::class);
 		$account2 = $this->createMock(Account::class);
 		$mailbox = $this->createStub(Mailbox::class);
-		$this->preferences->expects($this->exactly(19))
+		$this->preferences->expects($this->exactly(20))
 			->method('getPreference')
 			->willReturnMap([
 				[$this->userId, 'account-settings', '[]', json_encode([])],
@@ -201,6 +201,7 @@ class PageControllerTest extends TestCase {
 				[$this->userId, 'layout-mode', 'vertical-split', 'vertical-split'],
 				[$this->userId, 'layout-message-view', 'threaded', 'threaded'],
 				[$this->userId, 'follow-up-reminders', 'true', 'true'],
+				[$this->userId, 'ai-features', 'true', 'true'],
 				[$this->userId, 'internal-addresses', 'false', 'false'],
 				[$this->userId, 'smime-sign-aliases', '[]', '[]'],
 				[$this->userId, 'sort-favorites', 'false', 'false'],
@@ -317,7 +318,7 @@ class PageControllerTest extends TestCase {
 			->method('getValueBool')
 			->with(Application::APP_ID, ConfigLexicon::ALLOW_NEW_MAIL_ACCOUNTS, true)
 			->willReturn(true);
-		$this->aiIntegrationsService->expects(self::exactly(4))
+		$this->aiIntegrationsService->expects(self::exactly(5))
 			->method('isLlmProcessingEnabled')
 			->willReturn(false);
 
@@ -354,7 +355,7 @@ class PageControllerTest extends TestCase {
 		$this->classificationSettingsService->expects(($this->once()))
 			->method(('isClassificationEnabledByDefault'))
 			->willReturn(true);
-		$this->initialState->expects($this->exactly(27))
+		$this->initialState->expects($this->exactly(28))
 			->method('provideInitialState')
 			->withConsecutive(
 				['debug', true],
@@ -379,6 +380,7 @@ class PageControllerTest extends TestCase {
 					'layout-mode' => 'vertical-split',
 					'layout-message-view' => 'threaded',
 					'follow-up-reminders' => 'true',
+					'ai-features' => 'true',
 					'sort-favorites' => 'false',
 					'priority-inbox' => 'true',
 					'index-context-chat' => 'true',
@@ -396,6 +398,7 @@ class PageControllerTest extends TestCase {
 				['disable-scheduled-send', false],
 				['disable-snooze', false],
 				['allow-new-accounts', true],
+				['llm_processing_enabled', false],
 				['llm_summaries_available', false],
 				['llm_translation_enabled', false],
 				['llm_freeprompt_available', false],

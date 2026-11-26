@@ -133,6 +133,7 @@ class MessagesControllerTest extends TestCase {
 	private $userPreferences;
 	private SnoozeService $snoozeService;
 
+	private bool $aiEnabledForUser = true;
 	/** @var MockObject|AiIntegrationsService */
 	private $aiIntegrationsService;
 
@@ -168,6 +169,8 @@ class MessagesControllerTest extends TestCase {
 		$this->userPreferences = $this->createMock(IUserPreferences::class);
 		$this->snoozeService = $this->createMock(SnoozeService::class);
 		$this->aiIntegrationsService = $this->createMock(AiIntegrationsService::class);
+		$this->aiIntegrationsService->method('isLlmProcessingEnabledForUser')
+			->willReturnCallback(fn (string $userId): bool => $this->aiEnabledForUser);
 		$this->cacheFactory = $this->createMock(ICacheFactory::class);
 
 		$this->cacheFactory->method('createDistributed')
@@ -1540,6 +1543,16 @@ class MessagesControllerTest extends TestCase {
 		$actualResponse = $controller->smartReply(100);
 		$expectedResponse = new JSONResponse([], Http::STATUS_UNAUTHORIZED);
 		$this->assertEquals($expectedResponse, $actualResponse);
+	}
+
+	public function testSmartReplyWhenUserTurnedAiOff(): void {
+		$this->aiEnabledForUser = false;
+		$this->aiIntegrationsService->expects($this->never())
+			->method('getSmartReply');
+
+		$actualResponse = $this->controller->smartReply(100);
+
+		$this->assertEquals(new JSONResponse([], Http::STATUS_NO_CONTENT), $actualResponse);
 	}
 
 	public function testSmartReplyNoMessage(): void {

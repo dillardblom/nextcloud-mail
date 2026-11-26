@@ -88,7 +88,7 @@ class FollowUpClassifierJobTest extends TestCase {
 		$tag->setImapLabel('$follow_up');
 
 		$this->aiService->expects(self::once())
-			->method('isLlmProcessingEnabled')
+			->method('isFollowUpEnabledForUser')
 			->willReturn(true);
 		$this->mailManager->expects(self::once())
 			->method('getMailbox')
@@ -135,7 +135,7 @@ class FollowUpClassifierJobTest extends TestCase {
 		$mailAccount->setId(100);
 
 		$this->aiService->expects(self::once())
-			->method('isLlmProcessingEnabled')
+			->method('isFollowUpEnabledForUser')
 			->willReturn(false);
 		$this->mailManager->expects(self::never())
 			->method('getMailbox');
@@ -171,7 +171,7 @@ class FollowUpClassifierJobTest extends TestCase {
 		$messages = [];
 
 		$this->aiService->expects(self::once())
-			->method('isLlmProcessingEnabled')
+			->method('isFollowUpEnabledForUser')
 			->willReturn(true);
 		$this->mailManager->expects(self::once())
 			->method('getMailbox')
@@ -221,7 +221,7 @@ class FollowUpClassifierJobTest extends TestCase {
 		$tag->setImapLabel('$follow_up');
 
 		$this->aiService->expects(self::once())
-			->method('isLlmProcessingEnabled')
+			->method('isFollowUpEnabledForUser')
 			->willReturn(true);
 		$this->mailManager->expects(self::once())
 			->method('getMailbox')
@@ -275,7 +275,7 @@ class FollowUpClassifierJobTest extends TestCase {
 		$tag->setImapLabel('$follow_up');
 
 		$this->aiService->expects(self::once())
-			->method('isLlmProcessingEnabled')
+			->method('isFollowUpEnabledForUser')
 			->willReturn(true);
 		$this->mailManager->expects(self::once())
 			->method('getMailbox')
@@ -329,7 +329,7 @@ class FollowUpClassifierJobTest extends TestCase {
 		$tag->setImapLabel('$follow_up');
 
 		$this->aiService->expects(self::once())
-			->method('isLlmProcessingEnabled')
+			->method('isFollowUpEnabledForUser')
 			->willReturn(true);
 		$this->mailManager->expects(self::once())
 			->method('getMailbox')
@@ -380,7 +380,7 @@ class FollowUpClassifierJobTest extends TestCase {
 		$tag->setImapLabel('$follow_up');
 
 		$this->aiService->expects(self::once())
-			->method('isLlmProcessingEnabled')
+			->method('isFollowUpEnabledForUser')
 			->willReturn(true);
 		$this->mailManager->expects(self::once())
 			->method('getMailbox')
@@ -426,7 +426,7 @@ class FollowUpClassifierJobTest extends TestCase {
 		$message->setMessageId('<message1@foo.bar>');
 		$exception = new ServiceException('AI task processing failed');
 
-		$this->aiService->method('isLlmProcessingEnabled')->willReturn(true);
+		$this->aiService->method('isFollowUpEnabledForUser')->willReturn(true);
 		$this->mailManager
 			->method('getMailbox')
 			->with('user', 200)
@@ -482,7 +482,7 @@ class FollowUpClassifierJobTest extends TestCase {
 		$tag->setImapLabel('$follow_up');
 
 		$this->aiService->expects(self::once())
-			->method('isLlmProcessingEnabled')
+			->method('isFollowUpEnabledForUser')
 			->willReturn(true);
 		$this->mailManager->expects(self::once())
 			->method('getMailbox')
