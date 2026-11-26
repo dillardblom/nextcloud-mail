@@ -190,6 +190,12 @@ Download the newest `mail-v5.13.4-db.N.tar.gz` (or `mail-v5.13.4-db.tar.gz`) fro
 The code integrity check will report the mail app as changed; that is expected for a build that is
 not signed by Nextcloud.
 
+Keep the old folder outside `custom_apps` while `occ upgrade` runs: a copy such as `mail.old`
+inside it is seen as an app ("mailold") and the upgrade stops in maintenance mode.
+
+A script that runs `occ app:update --all` after a server update (AIO did, the workspace
+`update.sh` on nc01 does too) replaces this build as soon as the app store has a higher version.
+
 ## Next base
 
 Base `branch-5-13` follows the stable5.13 tags. To carry later work from the 5.12 build:
