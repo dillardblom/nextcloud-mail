@@ -19,7 +19,7 @@ The last column refers to the item in our own wish list.
 | Change | Branch | Upstream | List |
 |---|---|---|---|
 | Fold an account to a single line, indent its mailboxes | `feat/fold-accounts` | PR #13736, **merged** 2026-11-20 (in `main`, not in a 5.13 release) | 1 |
-| Optional account label in combined mailboxes, label as mailbox name, label in the navigation | `feat/account-label` (+ `v5.12.3-db-account-label-name`) | ready as one commit on `feat/account-label` (against `main`, Vue 3), not submitted | 2 |
+| Optional account label in combined mailboxes, label as mailbox name, label in the navigation | `feat/account-label` (+ `v5.12.3-db-account-label-name`) | PR #14336, open (one commit against `main`, Vue 3; its review fixes are in this build too) | 2 |
 | Maximized composer uses the screen and is remembered after a reload | `feat/composer-maximize` | not submitted | 3 |
 | Reply to the open message with Ctrl+R / Cmd+R | `feat/reply-shortcut` | not submitted | 4 |
 | Mailbox search: subqueries instead of joins, correlated subqueries, tag ids as integers | `perf/search-recipient-subqueries` (deleted) | PR #13803, **merged**; backported to stable5.13 (#13848) and stable5.12 (#13851) | 5 |
@@ -57,8 +57,8 @@ The last column refers to the item in our own wish list.
 | Delete selected threads one after another instead of all at once (parallel logins were refused by the mail server, after three refusals Mail locked the account for up to three hours: "Too many auth attempts") | `fix/sequential-thread-delete` (against `main`) | PR #14267, **merged** 2026-11-24 (in `main`) | – |
 | Delete a thread over one IMAP connection instead of one login per message (`main` already batches this) | `fix/thread-delete-one-connection` | not needed upstream | – |
 | Actions menu of an account named for screen readers, as in PR #13736 | `feat/fold-accounts` | PR #13736, merged | 1 |
-| "Show priority inbox" switch in Appearance: when off, the priority inbox is not in the navigation and the app opens the unified inbox (issue #7630) | `feat/hide-priority-inbox` (against `main`), 5.13 port `feat/hide-priority-inbox-5.13` | not submitted | 6 |
-| "Use AI features" switch in Assistance features: when off, no summaries, smart replies, translation, event suggestions or follow-up reminders, and the backend sends none of the user's messages to the assistant; the follow-up switch is now also enforced in the backend (issue #12550) | `feat/user-ai-toggle` (against `main`), 5.13 port `feat/user-ai-toggle-5.13` | not submitted | – |
+| "Show priority inbox" switch in Appearance: when off, the priority inbox is not in the navigation and the app opens the unified inbox (issue #7630) | `feat/hide-priority-inbox` (against `main`), 5.13 port `feat/hide-priority-inbox-5.13` | PR #14334, open | 6 |
+| "Use AI features" switch in Assistance features: when off, no summaries, smart replies, translation, event suggestions or follow-up reminders, and the backend sends none of the user's messages to the assistant; the follow-up switch is now also enforced in the backend (issue #12550) | `feat/user-ai-toggle` (against `main`), 5.13 port `feat/user-ai-toggle-5.13` | PR #14335, open; also blocks the translation offer and an open translation dialog, and for a delegated mailbox the owner's choice counts | – |
 
 ## Settings
 
@@ -135,7 +135,8 @@ builds; "main" means against upstream `main`, for a pull request.
 | `feat/fold-accounts` | main | yes | PR #13736, merged |
 | `v5.12.2-db-pr13736`, `v5.12.2-db-pr13736-align` | 5.12 | no | 5.12 versions of #13736 tried in the build; replaced by `feat/fold-accounts` |
 | `pr-13736-screenshots` | main | no | screenshots for #13736 |
-| `feat/account-label`, `v5.12.3-db-account-label-name` | main / 5.12 | yes | `feat/account-label` rebuilt 2026-11-26 on current `main` (Vue 3) as one commit with the navigation label; the local and fork copies are the same again |
+| `feat/account-label`, `v5.12.3-db-account-label-name` | main / 5.12 | yes | `feat/account-label` is PR #14336 (one commit on `main`, Vue 3, with the navigation label); the review fixes are applied to this build directly in `branch-5-13` |
+| `pr-hide-priority-inbox-screenshots`, `pr-user-ai-toggle-screenshots`, `pr-account-label-screenshots` | – | yes | images for the PR descriptions only |
 | `feat/composer-maximize` | main | yes | |
 | `feat/reply-shortcut` | main | yes | |
 | `perf/preview-enhancer-attachments` | main | yes | |
@@ -164,8 +165,8 @@ builds; "main" means against upstream `main`, for a pull request.
 | `fix/attachment-save-own-message` | main | – | PR #14007, merged |
 | `feat/archive-selection` | 5.12 | yes | |
 | `fix/sequential-thread-delete` | main | yes | PR #14267, merged |
-| `feat/hide-priority-inbox`, `feat/hide-priority-inbox-5.13` | main / 5.13 | yes | |
-| `feat/user-ai-toggle`, `feat/user-ai-toggle-5.13` | main / 5.13 | yes | |
+| `feat/hide-priority-inbox`, `feat/hide-priority-inbox-5.13` | main / 5.13 | yes | PR #14334 |
+| `feat/user-ai-toggle`, `feat/user-ai-toggle-5.13` | main / 5.13 | yes | PR #14335 |
 | `fix/thread-delete-one-connection` | 5.12 | yes | `main` already batches this |
 | `feat/play-audio-attachments` | 5.12 | yes | |
 | `fix/signature-html-formatting` | 5.12 | yes | see Notes for upstream |
