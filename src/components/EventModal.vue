@@ -164,7 +164,7 @@ export default {
 			selectedCalendar: undefined,
 			description: this.envelope.previewText,
 			generatingData: false,
-			llmProcessingEnabled: loadState('mail', 'llm_summaries_available', false),
+			summariesAvailable: loadState('mail', 'llm_summaries_available', false),
 			attendeesList: [],
 			attendeesOptions: [],
 		}
@@ -175,6 +175,10 @@ export default {
 		...mapState(useMainStore, {
 			organizerEmail: 'getCurrentUserPrincipalEmail',
 		}),
+
+		llmProcessingEnabled() {
+			return this.summariesAvailable && this.mainStore.isAiEnabled()
+		},
 
 		dateFormat() {
 			return this.isAllDay ? 'YYYY-MM-DD' : 'YYYY-MM-DD HH:mm'

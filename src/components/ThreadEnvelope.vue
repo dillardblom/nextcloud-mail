@@ -561,7 +561,7 @@ export default {
 			plainTextBody: '',
 			rawMessage: '', // Will hold the raw source of the message when requested
 			isInternal: true,
-			enabledFreePrompt: loadState('mail', 'llm_freeprompt_available', false),
+			freePromptAvailable: loadState('mail', 'llm_freeprompt_available', false),
 			loadingBodyTimeout: undefined,
 			showMailFilterFromEnvelope: false,
 		}
@@ -569,6 +569,11 @@ export default {
 
 	computed: {
 		...mapStores(useOutboxStore, useMainStore),
+
+		enabledFreePrompt() {
+			return this.freePromptAvailable && this.mainStore.isAiEnabled()
+		},
+
 		senderEmail() {
 			return this.envelope.from?.[0]?.email ?? ''
 		},

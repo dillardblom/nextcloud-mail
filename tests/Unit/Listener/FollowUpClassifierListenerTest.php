@@ -65,7 +65,7 @@ class FollowUpClassifierListenerTest extends TestCase {
 		$event = new NewMessagesSynchronized($account, $mailbox, [$message]);
 
 		$this->aiService->expects(self::once())
-			->method('isLlmProcessingEnabled')
+			->method('isFollowUpEnabledForUser')
 			->willReturn(true);
 		$this->aiService->expects(self::once())
 			->method('isLlmAvailable')
@@ -103,7 +103,7 @@ class FollowUpClassifierListenerTest extends TestCase {
 		$event = new NewMessagesSynchronized($account, $mailbox, [$message]);
 
 		$this->aiService->expects(self::once())
-			->method('isLlmProcessingEnabled')
+			->method('isFollowUpEnabledForUser')
 			->willReturn(false);
 		$this->aiService->expects(self::never())
 			->method('isLlmAvailable');
@@ -132,7 +132,7 @@ class FollowUpClassifierListenerTest extends TestCase {
 		$event = new NewMessagesSynchronized($account, $mailbox, [$message]);
 
 		$this->aiService->expects(self::once())
-			->method('isLlmProcessingEnabled')
+			->method('isFollowUpEnabledForUser')
 			->willReturn(true);
 		$this->aiService->expects(self::once())
 			->method('isLlmAvailable')
@@ -165,7 +165,7 @@ class FollowUpClassifierListenerTest extends TestCase {
 		$event = new NewMessagesSynchronized($account, $mailbox, [$message]);
 
 		$this->aiService->expects(self::once())
-			->method('isLlmProcessingEnabled')
+			->method('isFollowUpEnabledForUser')
 			->willReturn(true);
 		$this->aiService->expects(self::once())
 			->method('isLlmAvailable')
@@ -197,7 +197,7 @@ class FollowUpClassifierListenerTest extends TestCase {
 		$event = new NewMessagesSynchronized($account, $mailbox, [$message]);
 
 		$this->aiService->expects(self::once())
-			->method('isLlmProcessingEnabled')
+			->method('isFollowUpEnabledForUser')
 			->willReturn(true);
 		$this->aiService->expects(self::once())
 			->method('isLlmAvailable')

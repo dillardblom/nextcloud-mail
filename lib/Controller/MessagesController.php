@@ -1063,6 +1063,9 @@ class MessagesController extends Controller {
 		if ($this->userId === null) {
 			return new JSONResponse([], Http::STATUS_UNAUTHORIZED);
 		}
+		if (!$this->aiIntegrationService->isLlmProcessingEnabledForUser($this->userId)) {
+			return new JSONResponse([], Http::STATUS_NO_CONTENT);
+		}
 		try {
 			$effectiveUserId = $this->delegationService->resolveMessageUserId($messageId, $this->userId);
 			$message = $this->mailManager->getMessage($effectiveUserId, $messageId);

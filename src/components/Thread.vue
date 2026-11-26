@@ -97,7 +97,7 @@ export default {
 			errorMessage: '',
 			errorTitle: '',
 			expandedThreads: [],
-			enabledThreadSummary: loadState('mail', 'llm_summaries_available', false),
+			threadSummaryAvailable: loadState('mail', 'llm_summaries_available', false),
 			summaryText: '',
 			summaryError: false,
 			isolatedPrint: false,
@@ -106,6 +106,11 @@ export default {
 
 	computed: {
 		...mapStores(useMainStore),
+
+		enabledThreadSummary() {
+			return this.threadSummaryAvailable && this.mainStore.isAiEnabled()
+		},
+
 		threadId() {
 			return parseInt(this.$route.params.threadId, 10)
 		},

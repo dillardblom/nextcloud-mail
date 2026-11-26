@@ -143,6 +143,9 @@ class ThreadController extends Controller {
 	 */
 	#[NoAdminRequired]
 	public function summarize(int $id): JSONResponse {
+		if (!$this->aiIntergrationsService->isLlmProcessingEnabledForUser($this->userId)) {
+			return new JSONResponse([], Http::STATUS_NO_CONTENT);
+		}
 		try {
 			$effectiveUserId = $this->delegationService->resolveMessageUserId($id, $this->userId);
 			$message = $this->mailManager->getMessage($effectiveUserId, $id);
@@ -175,6 +178,9 @@ class ThreadController extends Controller {
 
 	#[NoAdminRequired]
 	public function generateEventData(int $id): JSONResponse {
+		if (!$this->aiIntergrationsService->isLlmProcessingEnabledForUser($this->userId)) {
+			return new JSONResponse([], Http::STATUS_NO_CONTENT);
+		}
 		try {
 			$effectiveUserId = $this->delegationService->resolveMessageUserId($id, $this->userId);
 			$message = $this->mailManager->getMessage($effectiveUserId, $id);
