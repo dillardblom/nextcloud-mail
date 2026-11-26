@@ -173,4 +173,85 @@ final class SyncServiceTest extends TestCase {
 		$this->assertSame([3, 2, 1], array_map(static fn (Message $message) => $message->getId(), $response->getNewMessages()));
 		$this->assertSame([], $response->getChangedMessages());
 	}
+
+	public function testSyncSetsThreadSizes(): void {
+		$account = $this->createMock(Account::class);
+		$account->method('getUserId')->willReturn('user');
+		$mailbox = new Mailbox();
+		$mailbox->setMessages(3);
+		$mailbox->setUnseen(1);
+		$mailbox->setSyncNewToken('token');
+		$mailbox->setSyncChangedToken('token');
+		$mailbox->setSyncVanishedToken('token');
+		$this->clientFactory
+			->method('getClient')
+			->willReturn($this->createStub(\Horde_Imap_Client_Socket::class));
+		$this->messageMapper->method('findNewIds')
+			->willReturn([3]);
+		$threadRoots = [1 => '<a@test>', 2 => '<b@test>', 3 => '<a@test>'];
+		$this->messageMapper->method('findByMailboxAndIds')
+			->willReturnCallback(fn (Mailbox $mb, string $userId, array $ids) => array_map(static function (int $id) use ($threadRoots): Message {
+				$message = new Message();
+				$message->setId($id);
+				$message->setThreadRootId($threadRoots[$id]);
+				return $message;
+			}, $ids));
+		$this->messageMapper->expects($this->once())
+			->method('countThreadMessages')
+			->with($account, $this->callback(static fn (array $roots) => array_values(array_unique($roots)) === ['<a@test>', '<b@test>']))
+			->willReturn(['<a@test>' => 3]);
+		$previewEnhancer = $this->createMock(PreviewEnhancer::class);
+		$previewEnhancer->method('process')
+			->willReturnArgument(2);
+		$syncService = new SyncService(
+			$this->clientFactory,
+			$this->synchronizer,
+			$this->createStub(FilterStringParser::class),
+			$this->messageMapper,
+			$previewEnhancer,
+			$this->createStub(\Psr\Log\LoggerInterface::class),
+			$this->mailboxSync
+		);
+
+		$response = $syncService->syncMailbox(
+			$account,
+			$mailbox,
+			0,
+			true,
+			null,
+			[1, 2]
+		);
+
+		$this->assertSame([3], array_map(static fn (Message $message) => $message->getThreadSize(), $response->getNewMessages()));
+		$this->assertSame([3, 1], array_map(static fn (Message $message) => $message->getThreadSize(), $response->getChangedMessages()));
+	}
+
+	public function testSyncWithoutMessagesCountsNoThreads(): void {
+		$account = $this->createMock(Account::class);
+		$account->method('getUserId')->willReturn('user');
+		$mailbox = new Mailbox();
+		$mailbox->setMessages(0);
+		$mailbox->setUnseen(0);
+		$mailbox->setSyncNewToken('token');
+		$mailbox->setSyncChangedToken('token');
+		$mailbox->setSyncVanishedToken('token');
+		$this->clientFactory
+			->method('getClient')
+			->willReturn($this->createStub(\Horde_Imap_Client_Socket::class));
+		$this->messageMapper->method('findNewIds')
+			->willReturn([]);
+		$this->messageMapper->method('findByMailboxAndIds')
+			->willReturn([]);
+		$this->messageMapper->expects($this->never())
+			->method('countThreadMessages');
+
+		$this->syncService->syncMailbox(
+			$account,
+			$mailbox,
+			0,
+			true,
+			null,
+			[1]
+		);
+	}
 }
