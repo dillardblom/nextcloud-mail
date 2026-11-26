@@ -162,11 +162,28 @@ class SyncService {
 		$stillKnownIds = array_map(static fn (Message $msg) => $msg->getId(), $changed);
 		$vanished = array_values(array_diff($knownIds, $stillKnownIds));
 
+		$new = $this->previewEnhancer->process($account, $mailbox, $new);
+		$this->setThreadSizes($account, [...$new, ...$changed]);
+
 		return new Response(
-			$this->previewEnhancer->process($account, $mailbox, $new),
+			$new,
 			$changed,
 			$vanished,
 			$mailbox->getStats()
 		);
+	}
+
+	/**
+	 * @param Message[] $messages
+	 */
+	private function setThreadSizes(Account $account, array $messages): void {
+		if ($messages === []) {
+			return;
+		}
+		$counts = $this->messageMapper->countThreadMessages($account, array_filter(array_map(
+			static fn (Message $message) => $message->getThreadRootId(), $messages)));
+		foreach ($messages as $message) {
+			$message->setThreadSize($counts[$message->getThreadRootId() ?? ''] ?? 1);
+		}
 	}
 }
