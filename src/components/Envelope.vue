@@ -202,7 +202,7 @@
 		</template>
 		<template #indicator>
 			<span
-				v-if="data.threadSize > 1"
+				v-if="layoutMessageViewThreaded && data.threadSize > 1"
 				class="envelope__thread-size"
 				:class="{ 'envelope__thread-size--unread': !data.flags.seen }"
 				:title="threadSizeLabel"
