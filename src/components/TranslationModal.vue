@@ -84,7 +84,7 @@
 import { showError, showSuccess } from '@nextcloud/dialogs'
 import { getLanguage } from '@nextcloud/l10n'
 import { NcButton, NcDialog, NcLoadingIcon, NcRichText, NcSelect } from '@nextcloud/vue'
-import { mapState } from 'pinia'
+import { mapState, mapStores } from 'pinia'
 import WarningIcon from 'vue-material-design-icons/AlertOctagonOutline.vue'
 import ArrowRight from 'vue-material-design-icons/ArrowRight.vue'
 import ContentCopy from 'vue-material-design-icons/ContentCopy.vue'
@@ -156,6 +156,7 @@ export default {
 	},
 
 	computed: {
+		...mapStores(useMainStore),
 		...mapState(useMainStore, {
 			availableInputLanguages: 'translationInputLanguages',
 			availableOutputLanguages: 'translationOutputLanguages',
@@ -197,6 +198,9 @@ export default {
 		},
 
 		async translateMessage() {
+			if (!this.mainStore.isAiEnabled()) {
+				return
+			}
 			try {
 				this.isLoading = true
 				const response = await translateText(this.message.trim(), this.selectedFrom.value, this.selectedTo.value)

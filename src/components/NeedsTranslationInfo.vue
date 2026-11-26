@@ -5,7 +5,7 @@
 
 <template>
 	<div
-		v-if="availableOutputLanguages.length > 0"
+		v-if="translationAvailable"
 		class="needs-translation-info"
 		:class="{ 'needs-translation-info--html': isHtml }">
 		{{ t('mail', 'Translate this message to {language}', { language: localLanguage }) }}
@@ -20,7 +20,7 @@
 <script>
 import { getLanguage } from '@nextcloud/l10n'
 import { NcButton } from '@nextcloud/vue'
-import { mapState } from 'pinia'
+import { mapState, mapStores } from 'pinia'
 import useMainStore from '../store/mainStore.js'
 
 export default {
@@ -37,9 +37,14 @@ export default {
 	},
 
 	computed: {
+		...mapStores(useMainStore),
 		...mapState(useMainStore, {
 			availableOutputLanguages: 'translationOutputLanguages',
 		}),
+
+		translationAvailable() {
+			return this.availableOutputLanguages.length > 0 && this.mainStore.isAiEnabled()
+		},
 
 		localLanguage() {
 			return this.availableOutputLanguages.find((lang) => lang.value === getLanguage())?.name || 'English'

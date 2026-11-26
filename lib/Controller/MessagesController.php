@@ -1074,6 +1074,9 @@ class MessagesController extends Controller {
 		} catch (DoesNotExistException $e) {
 			return new JSONResponse([], Http::STATUS_FORBIDDEN);
 		}
+		if ($effectiveUserId !== $this->userId && !$this->aiIntegrationService->isLlmProcessingEnabledForUser($effectiveUserId)) {
+			return new JSONResponse([], Http::STATUS_NO_CONTENT);
+		}
 		try {
 			$replies = array_values($this->aiIntegrationService->getSmartReply($account, $mailbox, $message, $effectiveUserId) ?? []);
 		} catch (ServiceException $e) {

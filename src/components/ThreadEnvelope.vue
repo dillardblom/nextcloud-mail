@@ -346,7 +346,7 @@
 			:envelope="envelope"
 			:message="message"
 			:full-height="fullHeight"
-			:smart-replies="showFollowUpHeader ? [] : smartReplies"
+			:smart-replies="showFollowUpHeader || !enabledFreePrompt ? [] : smartReplies"
 			:reply-button-label="replyButtonLabel"
 			@load="onMessageLoaded"
 			@print-shortcut="$emit('print-shortcut')"

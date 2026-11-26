@@ -154,6 +154,9 @@ class ThreadController extends Controller {
 		} catch (DoesNotExistException $e) {
 			return new JSONResponse([], Http::STATUS_FORBIDDEN);
 		}
+		if ($effectiveUserId !== $this->userId && !$this->aiIntergrationsService->isLlmProcessingEnabledForUser($effectiveUserId)) {
+			return new JSONResponse([], Http::STATUS_NO_CONTENT);
+		}
 		$threadRootId = $message->getThreadRootId();
 		if ($threadRootId === null || $threadRootId === '') {
 			return new JSONResponse([], Http::STATUS_NOT_FOUND);
@@ -188,6 +191,9 @@ class ThreadController extends Controller {
 			$account = $this->accountService->find($effectiveUserId, $mailbox->getAccountId());
 		} catch (DoesNotExistException $e) {
 			return new JSONResponse([], Http::STATUS_FORBIDDEN);
+		}
+		if ($effectiveUserId !== $this->userId && !$this->aiIntergrationsService->isLlmProcessingEnabledForUser($effectiveUserId)) {
+			return new JSONResponse([], Http::STATUS_NO_CONTENT);
 		}
 		$threadRootId = $message->getThreadRootId();
 		if ($threadRootId === null || $threadRootId === '') {
