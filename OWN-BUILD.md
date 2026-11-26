@@ -37,7 +37,7 @@ The last column refers to the item in our own wish list.
 | Type to find an account or alias in the From field | `feat/searchable-from` | not submitted | 8 |
 | Convert non-UTF-8 subjects and recipients before insert | `fix/utf8-recipient-labels` | PR #13782, open | – |
 | `mail:account:list` and better account commands | `feat/account-commands-help` | not submitted | – |
-| Number of messages of a thread in the message list, also in the unread dot | `feat/thread-count` | not submitted | 13a |
+| Number of messages of a thread in the message list, also in the unread dot; updated after a background sync, up and down | `feat/thread-count` | not submitted | 13a |
 | Select across date groups, and "Select all" | `feat/select-across-groups` | not submitted | 15 |
 | Open an office attachment in the office app (click or menu), on its editor page; PDFs too with Euro-Office/ONLYOFFICE; also CSV, and TXT, MD, TSV, Pages, Numbers and Keynote with Euro-Office/ONLYOFFICE; LOG, JSON, XML, YAML, conf, HTML and PHP open in Text as source, in the Viewer over Mail | `feat/open-attachment-in-office` | not submitted | 14 |
 | Configurable single-key shortcuts of the message list, and a key to mark as spam | `feat/configurable-shortcuts` | not submitted | – |
