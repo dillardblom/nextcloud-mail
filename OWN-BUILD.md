@@ -137,7 +137,8 @@ builds; "main" means against upstream `main`, for a pull request.
 | `pr-13736-screenshots` | main | no | screenshots for #13736 |
 | `feat/account-label`, `v5.12.3-db-account-label-name` | main / 5.12 | yes | `feat/account-label` is PR #14336 (one commit on `main`, Vue 3, with the navigation label); the review fixes are applied to this build directly in `branch-5-13` |
 | `pr-hide-priority-inbox-screenshots`, `pr-user-ai-toggle-screenshots`, `pr-account-label-screenshots`, `pr-mailbox-remount-screenshots` | – | yes | images for the PR descriptions only |
-| `fix/mailbox-load-on-remount` | main | yes | PR #14367, closed in favor of #14346 (same fix by a maintainer). Its second commit (`loadMore` unsubscribe, af39e7274) is offered for #14346 or as a separate PR after his reply; main only, not needed in this build |
+| `fix/mailbox-load-on-remount` | main | yes | PR #14367, closed in favor of #14346 (same fix by a maintainer) |
+| `fix/mailbox-unsubscribe-load-more` | main | yes | PR #14368: remove the `loadMore` bus handler on unmount (split off from #14367); main only, not needed in this build |
 | `feat/composer-maximize` | main | yes | |
 | `feat/reply-shortcut` | main | yes | |
 | `perf/preview-enhancer-attachments` | main | yes | |
