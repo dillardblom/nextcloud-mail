@@ -38,7 +38,7 @@ The last column refers to the item in our own wish list.
 | Convert non-UTF-8 subjects and recipients before insert | `fix/utf8-recipient-labels` | PR #13782, open | – |
 | `mail:account:list` and better account commands | `feat/account-commands-help` | not submitted | – |
 | Number of messages of a thread in the message list, also in the unread dot; updated after a background sync, up and down | `feat/thread-count` | not submitted | 13a |
-| Select across date groups, and "Select all" | `feat/select-across-groups` | not submitted | 15 |
+| Select across date groups, and "Select all" | `feat/select-across-groups` | not submitted. Shift-click range starts from the last clicked message itself, not its old position in the list (since 5.13.4-db.4) | 15 |
 | Open an office attachment in the office app (click or menu), on its editor page; PDFs too with Euro-Office/ONLYOFFICE; also CSV, and TXT, MD, TSV, Pages, Numbers and Keynote with Euro-Office/ONLYOFFICE; LOG, JSON, XML, YAML, conf, HTML and PHP open in Text as source, in the Viewer over Mail | `feat/open-attachment-in-office` | not submitted | 14 |
 | Configurable single-key shortcuts of the message list, and a key to mark as spam | `feat/configurable-shortcuts` | not submitted | – |
 | Reply among the configurable shortcuts, Ctrl/Cmd combinations (e.g. R to reply, Ctrl+R to refresh); own keys kept after a reload; a plain reply key can still be typed in the composer | `feat/configurable-reply-refresh` | not submitted | 21 |

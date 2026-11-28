@@ -73,4 +73,23 @@ describe('EnvelopeList', () => {
 
 		expect(view.vm.archivableSelection).toEqual([])
 	})
+
+	it('selects a range from the last clicked message after new messages arrived above it', async () => {
+		view.vm.onEnvelopeSelectToggle(view.vm.sortedEnvelops[1], true)
+		await view.setProps({ envelopes: [envelope(106, 1, 11), envelope(107, 1, 11), ...view.props('envelopes')] })
+
+		view.vm.onEnvelopeSelectMultiple(view.vm.sortedEnvelops[5])
+
+		expect(view.vm.selection.slice().sort()).toEqual([102, 103, 104])
+	})
+
+	it('selects a range from the open message when the last clicked message is gone', async () => {
+		view.vm.$route.params.threadId = '103'
+		view.vm.onEnvelopeSelectToggle(view.vm.sortedEnvelops[4], true)
+		await view.setProps({ envelopes: view.props('envelopes').slice(0, 4) })
+
+		view.vm.onEnvelopeSelectMultiple(view.vm.sortedEnvelops[0])
+
+		expect(view.vm.selection.slice().sort()).toEqual([101, 102, 103])
+	})
 })
