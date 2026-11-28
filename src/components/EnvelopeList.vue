@@ -124,7 +124,7 @@
 		</transition>
 
 		<transition-group :name="listTransitionName">
-			<template v-for="(env, index) in sortedEnvelops">
+			<template v-for="env in sortedEnvelops">
 				<SectionTitle
 					v-if="groupTitles[env.databaseId]"
 					:key="'group-' + env.databaseId"
@@ -141,8 +141,8 @@
 					:compact-mode="compactMode"
 					:date-grouped="dateGrouped"
 					@delete="$emit('delete', env.databaseId)"
-					@update:selected="onEnvelopeSelectToggle(env, index, $event)"
-					@select-multiple="onEnvelopeSelectMultiple(env, index)"
+					@update:selected="onEnvelopeSelectToggle(env, $event)"
+					@select-multiple="onEnvelopeSelectMultiple(env)"
 					@open:quick-actions-settings="showQuickActionsSettings = true" />
 			</template>
 			<div
@@ -302,7 +302,7 @@ export default {
 			selection: [],
 			showMoveModal: false,
 			showTagModal: false,
-			lastToggledIndex: undefined,
+			lastToggledId: undefined,
 			defaultView: false,
 			showQuickActionsSettings: false,
 		}
@@ -574,16 +574,16 @@ export default {
 			}
 		},
 
-		onEnvelopeSelectToggle(envelope, index, selected) {
-			this.lastToggledIndex = index
+		onEnvelopeSelectToggle(envelope, selected) {
+			this.lastToggledId = envelope.databaseId
 			this.setEnvelopeSelected(envelope, selected)
 		},
 
-		onEnvelopeSelectMultiple(envelope, index) {
-			const lastToggledIndex = this.lastToggledIndex
+		onEnvelopeSelectMultiple(envelope) {
+			const index = this.findSelectionIndex(envelope.databaseId)
+			const lastToggledIndex = this.findSelectionIndex(this.lastToggledId)
 				?? this.findSelectionIndex(parseInt(this.$route.params.threadId))
-				?? undefined
-			if (lastToggledIndex === undefined) {
+			if (index === undefined || lastToggledIndex === undefined) {
 				return
 			}
 
@@ -593,7 +593,7 @@ export default {
 			for (let i = start; i <= end; i++) {
 				this.setEnvelopeSelected(this.sortedEnvelops[i], !selected)
 			}
-			this.lastToggledIndex = index
+			this.lastToggledId = envelope.databaseId
 		},
 
 		/** Select every message in the list, across the date groups */
